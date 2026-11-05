@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>SecurityShop</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:#000;--card:#0b0b0c;--line:#1d1d20;--mut:#8a8a93;--red:#e5484d;--red2:#a3202a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:#000;color:#fff;font-family:-apple-system,"SF Pro Display",Inter,system-ui,sans-serif}
+button{font-family:inherit;cursor:pointer}
+header.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(10,10,10,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.logo{font-style:italic;font-weight:800;font-size:21px;letter-spacing:.3px}
+.logo span{color:var(--red)}
+.lang{border:1px solid var(--line);background:#0b0b0c;color:#fff;border-radius:14px;padding:7px 13px;font-size:13px;font-weight:700}
+main{padding:16px 16px 130px;min-height:100vh}
+h1{font-size:34px;margin:6px 0 16px}
+.search{position:relative;margin-bottom:14px}
+.search input{width:100%;background:#0b0b0c;border:1px solid var(--line);border-radius:18px;padding:15px 16px 15px 46px;color:#fff;font-size:16px;outline:none}
+.search svg{position:absolute;left:15px;top:50%;transform:translateY(-50%);width:20px;height:20px;fill:none;stroke:var(--mut);stroke-width:2}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;overflow:hidden;position:relative}
+.ph{aspect-ratio:3/4;background:#000;position:relative}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph:after{content:"";position:absolute;left:0;right:0;bottom:0;height:35%;background:linear-gradient(transparent,#0b0b0c);pointer-events:none}
+.card.sold .ph img{filter:grayscale(1) brightness(.55)}
+.fav{position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:grid;place-items:center;z-index:2;padding:0}
+.fav svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2}
+.fav.on svg{fill:var(--red);stroke:var(--red)}
+.badge{position:absolute;top:10px;left:10px;z-index:2;background:linear-gradient(90deg,#e5484d,#a3202a);padding:5px 10px;border-radius:10px;font-size:12px;font-weight:700}
+.meta{padding:2px 14px 14px;position:relative;z-index:1}
+.meta small{color:var(--mut);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;display:block;min-height:13px}
+.meta b{display:block;font-size:15px;margin:2px 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.price{color:#ff6b6f;font-weight:700;font-size:16px}
+.empty{grid-column:1/-1;text-align:center;color:var(--mut);padding:70px 20px;line-height:1.5}
+.empty .circle{width:84px;height:84px;border-radius:50%;border:1px solid var(--line);background:#0b0b0c;margin:0 auto 18px;display:grid;place-items:center}
+.empty .circle svg{width:34px;height:34px;fill:none;stroke:#aaa;stroke-width:1.8}
+nav.bar{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:30;display:flex;padding:10px 6px;border-radius:32px;background:linear-gradient(180deg,#1b0c0e,#0a0a0a);border:1px solid #2a1a1c;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+nav button{background:none;border:0;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;flex:1;padding:4px 0}
+nav button.on{color:#fff}
+nav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 14px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:9px 15px;border-radius:20px;border:1px solid var(--line);background:#0b0b0c;color:#ddd;font-size:14px}
+.chip i{font-style:normal;color:var(--mut);margin-left:5px}
+.chip.on{background:#fff;color:#000;border-color:#fff}
+.chip.on i{color:#555}
+.foot{text-align:center;color:var(--mut);padding:34px 10px 0;font-size:14px;line-height:1.5}
+.foot .logo{color:#fff;margin-bottom:8px;font-size:24px}
+.soc{display:inline-flex;margin-top:14px;align-items:center;gap:8px;border:1px solid var(--line);background:#0b0b0c;color:#fff;border-radius:20px;padding:11px 18px;font-size:14px}
+.overlay{position:fixed;inset:0;background:#000;z-index:50;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch}
+.overlay.show{display:block}
+.gal{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;background:#0b0b0c}
+.gal::-webkit-scrollbar{display:none}
+.gal .slide{flex:0 0 100%;scroll-snap-align:start;aspect-ratio:3/4;max-height:68vh;width:100%}
+.gal img{width:100%;height:100%;object-fit:cover;display:block}
+.noimg{width:100%;height:100%;background:#0b0b0c}
+.dots{display:flex;justify-content:center;gap:6px;padding:12px 0 2px}
+.dots i{width:6px;height:6px;border-radius:3px;background:#333;transition:.2s}
+.dots i.on{width:22px;background:#fff}
+.pbody{padding:8px 18px calc(110px + env(safe-area-inset-bottom))}
+.pbody small{color:var(--mut);letter-spacing:.08em;text-transform:uppercase;font-size:12px;font-weight:600}
+.pbody h2{margin:4px 0 8px;font-size:26px;line-height:1.2}
+.pbody .price{font-size:24px}
+.pbody h3{margin:22px 0 10px;font-size:14px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
+.sz{display:flex;flex-wrap:wrap;gap:8px}
+.sz span{min-width:46px;text-align:center;padding:10px 14px;border:1px solid #2b2b30;border-radius:14px;background:#0b0b0c;font-weight:600}
+.pbody p{color:#d0d0d6;line-height:1.55;white-space:pre-wrap;margin:0}
+.pbar{position:fixed;left:0;right:0;bottom:0;display:flex;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,#000 35%);z-index:60}
+.btn{border:0;border-radius:18px;padding:16px;font-size:16px;font-weight:700;color:#fff;background:linear-gradient(90deg,#e5484d,#a3202a);flex:1}
+.btn.full{width:100%;margin-bottom:14px}
+.btn:disabled{opacity:.5}
+.btn.ghost{background:#0b0b0c;border:1px solid var(--line);flex:none;width:56px;padding:0;display:grid;place-items:center}
+.btn.ghost svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2}
+.btn.ghost.on svg{fill:var(--red);stroke:var(--red)}
+.arow{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:10px;margin-bottom:10px}
+.arow img,.arow .t{width:56px;height:70px;object-fit:cover;border-radius:12px;background:#000;flex:none}
+.arow .ai{flex:1;min-width:0}
+.arow .ai b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+.arow .ai span{color:var(--mut);font-size:13px}
+.ab{display:flex;gap:6px}
+.ab button{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:#111;color:#fff;font-size:16px}
+.fhead{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 6px}
+.fhead h2{margin:0;font-size:22px}
+.fhead button{background:#111;border:1px solid var(--line);color:#fff;border-radius:14px;padding:9px 14px;font-size:14px}
+.form{padding:8px 18px calc(40px + env(safe-area-inset-bottom))}
+.form label{display:block;color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px}
+.form input[type=text],.form input[type=number],.form textarea{width:100%;background:#0b0b0c;border:1px solid var(--line);border-radius:14px;padding:14px;color:#fff;font-size:16px;outline:none;font-family:inherit}
+.form textarea{min-height:100px;resize:vertical}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pth{position:relative;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:#0b0b0c;border:1px solid var(--line)}
+.pth img{width:100%;height:100%;object-fit:cover}
+.pth .x{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:14px;padding:0}
+.pth .l{position:absolute;bottom:4px;left:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:13px;padding:0}
+.pth .c{position:absolute;bottom:4px;left:4px;background:var(--red);border-radius:8px;font-size:10px;padding:3px 6px;font-weight:700}
+.padd{aspect-ratio:3/4;border-radius:14px;border:1px dashed #3a3a40;display:grid;place-items:center;color:var(--mut);font-size:30px;position:relative;background:#0b0b0c}
+.padd input{position:absolute;inset:0;opacity:0;width:100%;height:100%}
+.hint{color:var(--mut);font-size:12px;margin-top:6px}
+</style>
+</head>
+<body>
+<header class="top"><div class="logo" id="logo"></div><button class="lang" id="lang"></button></header>
+<main id="app"></main>
+<nav class="bar" id="nav"></nav>
+<div class="overlay" id="pv"></div>
+<div class="overlay" id="fm"></div>
+
+<script>
+const WA = (window.Telegram && Telegram.WebApp) || null;
+const tg = {
+  initData: WA ? WA.initData : '',
+  user: WA && WA.initDataUnsafe ? WA.initDataUnsafe.user : null,
+  call(fn, ...a){ try { return WA[fn](...a); } catch(e){} },
+  alert(m){ WA ? WA.showAlert(m) : alert(m); },
+  confirm(m, cb){ WA ? WA.showConfirm(m, cb) : cb(confirm(m)); },
+  link(u){ WA ? WA.openLink(u) : window.open(u, '_blank'); },
+  tlink(u){ WA ? WA.openTelegramLink(u) : window.open(u, '_blank'); },
+  tap(){ try { WA.HapticFeedback.impactOccurred('light'); } catch(e){} }
+};
+tg.call('ready'); tg.call('expand'); tg.call('setHeaderColor', '#000000'); tg.call('setBackgroundColor', '#000000');
+
+const I = {
+  ru: { home:'Главная', catalog:'Каталог', fav:'Избранное', admin:'Админ', search:'Поиск', all:'Все',
+    sizes:'Размеры', desc:'Описание', msg:'Написать менеджеру', sold:'Продано', soldLabel:'продано',
+    emptyAll:'Пока нет товаров', emptyFav:'Пока ничего нет. Добавляйте вещи сердечком.', nothing:'Ничего не найдено',
+    add:'Добавить товар', newItem:'Новый товар', editItem:'Редактирование', del:'Удалить', save:'Сохранить', close:'Закрыть',
+    photos:'Фото (до 10)', tru:'Название (RU)', ten:'Название (EN, необязательно)', dru:'Описание (RU)', den:'Описание (EN, необязательно)',
+    price:'Цена, ₽', cat:'Категория', catPh:'Например: Куртки', szs:'Размеры', szPh:'S, M, L или 42, 43',
+    hintCover:'Первое фото — обложка. Стрелка ← ставит фото первым.', confirmDel:'Удалить товар?', needTitle:'Введите название',
+    err:'Ошибка', saving:'Сохранение…', about:'Мультибрендовый магазин одежды', tiktok:'Мы в TikTok',
+    hi:'Здравствуйте! Меня интересует: ', noManager:'Контакт менеджера не настроен', items:'тов.', sold2:'Продан / вернуть в наличие' },
+  en: { home:'Home', catalog:'Catalog', fav:'Favorites', admin:'Admin', search:'Search', all:'All',
+    sizes:'Sizes', desc:'Description', msg:'Message the manager', sold:'Sold', soldLabel:'sold',
+    emptyAll:'No items yet', emptyFav:'Nothing here yet. Tap the heart to save items.', nothing:'Nothing found',
+    add:'Add item', newItem:'New item', editItem:'Edit item', del:'Delete', save:'Save', close:'Close',
+    photos:'Photos (up to 10)', tru:'Title (RU)', ten:'Title (EN, optional)', dru:'Description (RU)', den:'Description (EN, optional)',
+    price:'Price, ₽', cat:'Category', catPh:'e.g. Jackets', szs:'Sizes', szPh:'S, M, L or 42, 43',
+    hintCover:'The first photo is the cover. The ← button moves a photo to the front.', confirmDel:'Delete this item?', needTitle:'Enter a title',
+    err:'Error', saving:'Saving…', about:'Multi-brand clothing store', tiktok:'Follow us on TikTok',
+    hi:"Hi! I'm interested in: ", noManager:'Manager contact is not configured', items:'items', sold2:'Sold / back in stock' }
+};
+const ICON = {
+  home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  catalog:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>',
+  fav:'<svg viewBox="0 0 24 24"><path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z"/></svg>',
+  admin:'<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>',
+  search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>'
+};
+
+const S = { lang: null, products: [], favs: new Set(), isAdmin: false, cfg: { shop:'SecurityShop', manager:'', tiktok:'' },
+  tab: 'home', q: '', cat: '', pv: null, form: null };
+try { S.lang = localStorage.getItem('lang'); } catch(e){}
+if (!S.lang) {
+  const lc = (tg.user && tg.user.language_code) || navigator.language || 'ru';
+  S.lang = lc.toLowerCase().startsWith('ru') ? 'ru' : 'en';
+}
+const T = k => (I[S.lang] && I[S.lang][k]) || k;
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+const price = n => Number(n).toLocaleString(S.lang === 'ru' ? 'ru-RU' : 'en-US') + ' ₽';
+const tr = (p, k) => p[k + '_' + S.lang] || p[k + '_ru'] || p[k + '_en'] || '';
+const sizesOf = p => String(p.sizes || '').split(/[,;]/).map(s => s.trim()).filter(Boolean);
+
+async function api(path, opt = {}) {
+  const r = await fetch(path, {
+    method: opt.method || 'GET',
+    headers: { 'content-type': 'application/json', 'X-Init-Data': tg.initData || '' },
+    body: opt.body ? JSON.stringify(opt.body) : undefined
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+/* ---------- views ---------- */
+function filtered(useCat) {
+  const q = S.q.trim().toLowerCase();
+  return S.products.filter(p => {
+    if (useCat && S.cat && p.category !== S.cat) return false;
+    if (!q) return true;
+    return (p.title_ru + ' ' + p.title_en + ' ' + p.category).toLowerCase().includes(q);
+  });
+}
+function card(p) {
+  const on = S.favs.has(p.id);
+  const img = p.photos[0] ? `<img loading="lazy" src="/img/${p.photos[0]}">` : '<div class="noimg"></div>';
+  return `<div class="card ${p.sold ? 'sold' : ''}" data-act="open" data-id="${p.id}">
+    <div class="ph">${img}${p.sold ? `<span class="badge">${T('sold')}</span>` : ''}
+    <button class="fav ${on ? 'on' : ''}" data-act="fav" data-id="${p.id}">${ICON.fav}</button></div>
+    <div class="meta"><small>${esc(p.category)}</small><b>${esc(tr(p, 'title'))}</b><span class="price">${price(p.price)}</span></div></div>`;
+}
+function gridHtml(list, emptyKey) {
+  if (!list.length) return `<div class="empty"><div class="circle">${ICON.search}</div>${T(emptyKey || 'nothing')}</div>`;
+  return list.map(card).join('');
+}
+function searchBox() {
+  return `<div class="search">${ICON.search}<input id="q" type="search" value="${esc(S.q)}" placeholder="${T('search')}"></div>`;
+}
+function footer() {
+  return `<div class="foot"><div class="logo">${esc(S.cfg.shop)}</div>${T('about')}<br>
+    ${S.cfg.tiktok ? `<button class="soc" data-act="tiktok">♪ ${T('tiktok')}</button>` : ''}</div>`;
+}
+function viewHome() {
+  const list = filtered(false);
+  return searchBox() + `<div class="grid" id="grid">${gridHtml(list, S.products.length ? 'nothing' : 'emptyAll')}</div>` + footer();
+}
+function viewCatalog() {
+  const cats = [...new Set(S.products.map(p => p.category).filter(Boolean))];
+  const chips = `<div class="chips"><button class="chip ${!S.cat ? 'on' : ''}" data-act="cat" data-cat="">${T('all')}<i>${S.products.length}</i></button>` +
+    cats.map(c => `<button class="chip ${S.cat === c ? 'on' : ''}" data-act="cat" data-cat="${esc(c)}">${esc(c)}<i>${S.products.filter(p => p.category === c).length}</i></button>`).join('') + '</div>';
+  return `<h1>${T('catalog')}</h1>` + searchBox() + chips + `<div class="grid" id="grid">${gridHtml(filtered(true), S.products.length ? 'nothing' : 'emptyAll')}</div>`;
+}
+function viewFav() {
+  const list = S.products.filter(p => S.favs.has(p.id));
+  return `<h1>${T('fav')}</h1><div class="grid" id="grid">${list.length ? list.map(card).join('') :
+    `<div class="empty"><div class="circle">${ICON.fav}</div>${T('emptyFav')}</div>`}</div>` + footer();
+}
+function viewAdmin() {
+  return `<h1>${T('admin')}</h1><button class="btn full" data-act="new">+ ${T('add')}</button>` +
+    S.products.map(p => `<div class="arow">${p.photos[0] ? `<img src="/img/${p.photos[0]}">` : '<div class="t"></div>'}
+      <div class="ai"><b>${esc(tr(p, 'title'))}</b><span>${price(p.price)}${p.sold ? ' · ' + T('soldLabel') : ''}</span></div>
+      <div class="ab"><button data-act="edit" data-id="${p.id}">✎</button><button data-act="toggle" data-id="${p.id}" title="${T('sold2')}">${p.sold ? '↩' : '✓'}</button><button data-act="del" data-id="${p.id}">✕</button></div></div>`).join('');
+}
+function render() {
+  $('logo').innerHTML = esc(S.cfg.shop).replace(/(.*?)(Shop|Store)$/i, '$1<span>$2</span>');
+  $('lang').textContent = S.lang === 'ru' ? 'EN' : 'RU';
+  document.documentElement.lang = S.lang;
+  const tabs = [['home', 'home'], ['catalog', 'catalog'], ['fav', 'fav']];
+  if (S.isAdmin) tabs.push(['admin', 'admin']);
+  $('nav').innerHTML = tabs.map(([k, ic]) => `<button class="${S.tab === k ? 'on' : ''}" data-act="tab" data-tab="${k}">${ICON[ic]}${T(k)}</button>`).join('');
+  const v = { home: viewHome, catalog: viewCatalog, fav: viewFav, admin: viewAdmin }[S.tab];
+  $('app').innerHTML = v();
+  if (S.pv) renderProduct();
+  if (S.form) renderForm();
+}
+function refreshGrid() {
+  const g = $('grid'); if (!g) return;
+  g.innerHTML = gridHtml(filtered(S.tab === 'catalog'), S.products.length ? 'nothing' : 'emptyAll');
+}
+
+/* ---------- product page ---------- */
+function openProduct(id) { S.pv = id; renderProduct(); $('pv').classList.add('show'); $('pv').scrollTop = 0; updateBack(); }
+function renderProduct() {
+  const p = S.products.find(x => x.id === S.pv);
+  if (!p) { closeTop(); return; }
+  const on = S.favs.has(p.id);
+  const slides = p.photos.length ? p.photos.map(id => `<div class="slide"><img src="/img/${id}"></div>`).join('') : '<div class="slide"><div class="noimg"></div></div>';
+  const dots = p.photos.length > 1 ? `<div class="dots">${p.photos.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : '';
+  const sz = sizesOf(p);
+  const d = tr(p, 'desc');
+  $('pv').innerHTML = `<div class="gal" id="gal">${slides}</div>${dots}
+    <div class="pbody"><small>${esc(p.category)}</small><h2>${esc(tr(p, 'title'))}</h2><span class="price">${price(p.price)}</span>
+    ${p.sold ? `<div style="margin-top:8px;color:var(--red);font-weight:700">${T('sold')}</div>` : ''}
+    ${sz.length ? `<h3>${T('sizes')}</h3><div class="sz">${sz.map(s => `<span>${esc(s)}</span>`).join('')}</div>` : ''}
+    ${d ? `<h3>${T('desc')}</h3><p>${esc(d)}</p>` : ''}</div>
+    <div class="pbar"><button class="btn" data-act="msg" data-id="${p.id}">${T('msg')}</button>
+    <button class="btn ghost ${on ? 'on' : ''}" data-act="fav" data-id="${p.id}">${ICON.fav}</button></div>`;
+  const gal = $('gal');
+  if (gal) gal.addEventListener('scroll', () => {
+    const i = Math.round(gal.scrollLeft / gal.clientWidth);
+    document.querySelectorAll('#pv .dots i').forEach((el, k) => el.classList.toggle('on', k === i));
+  }, { passive: true });
+}
+function messageManager(id) {
+  const p = S.products.find(x => x.id === id); if (!p) return;
+  if (!S.cfg.manager) return tg.alert(T('noManager'));
+  const text = T('hi') + tr(p, 'title') + ' (' + price(p.price) + ')';
+  tg.tlink('https://t.me/' + S.cfg.manager + '?text=' + encodeURIComponent(text));
+}
+
+/* ---------- favorites ---------- */
+async function toggleFav(id) {
+  tg.tap();
+  const on = !S.favs.has(id);
+  on ? S.favs.add(id) : S.favs.delete(id);
+  document.querySelectorAll(`[data-act="fav"][data-id="${id}"]`).forEach(b => b.classList.toggle('on', on));
+  if (S.tab === 'fav') { const y = scrollY; $('app').innerHTML = viewFav(); scrollTo(0, y); }
+  try { await api('/api/favorites/' + id, { method: 'POST' }); } catch (e) {
+    on ? S.favs.delete(id) : S.favs.add(id);
+    document.querySelectorAll(`[data-act="fav"][data-id="${id}"]`).forEach(b => b.classList.toggle('on', !on));
+  }
+}
+
+/* ---------- admin form ---------- */
+function newForm(p) {
+  S.form = p ? { id: p.id, title_ru: p.title_ru, title_en: p.title_en, desc_ru: p.desc_ru, desc_en: p.desc_en, price: p.price,
+      category: p.category, sizes: p.sizes, sold: p.sold, photos: p.photos.map(id => ({ id, url: '/img/' + id })) }
+    : { id: null, title_ru: '', title_en: '', desc_ru: '', desc_en: '', price: '', category: '', sizes: '', sold: false, photos: [] };
+  renderForm(); $('fm').classList.add('show'); $('fm').scrollTop = 0; updateBack();
+}
+function readForm() {
+  const F = S.form; if (!F) return;
+  const g = id => { const el = $(id); return el ? el.value : ''; };
+  F.title_ru = g('f_tru'); F.title_en = g('f_ten'); F.desc_ru = g('f_dru'); F.desc_en = g('f_den');
+  F.price = g('f_price'); F.category = g('f_cat'); F.sizes = g('f_sz');
+}
+function renderForm() {
+  const F = S.form;
+  const th = F.photos.map((ph, i) => `<div class="pth"><img src="${esc(ph.url)}"><button class="x" data-act="ph-del" data-i="${i}">✕</button>
+    ${i === 0 ? '<span class="c">★</span>' : `<button class="l" data-act="ph-first" data-i="${i}">←</button>`}</div>`).join('');
+  const add = F.photos.length < 10 ? `<div class="padd">+<input id="f_files" type="file" accept="image/*" multiple></div>` : '';
+  $('fm').innerHTML = `<div class="fhead"><h2>${F.id ? T('editItem') : T('newItem')}</h2><button data-act="form-close">${T('close')}</button></div>
+  <div class="form">
+    <label>${T('photos')}</label><div class="pgrid">${th}${add}</div><div class="hint">${T('hintCover')}</div>
+    <label>${T('tru')}</label><input id="f_tru" type="text" value="${esc(F.title_ru)}">
+    <label>${T('ten')}</label><input id="f_ten" type="text" value="${esc(F.title_en)}">
+    <label>${T('price')}</label><input id="f_price" type="number" inputmode="numeric" value="${esc(F.price)}">
+    <label>${T('cat')}</label><input id="f_cat" type="text" placeholder="${T('catPh')}" value="${esc(F.category)}">
+    <label>${T('szs')}</label><input id="f_sz" type="text" placeholder="${T('szPh')}" value="${esc(F.sizes)}">
+    <label>${T('dru')}</label><textarea id="f_dru">${esc(F.desc_ru)}</textarea>
+    <label>${T('den')}</label><textarea id="f_den">${esc(F.desc_en)}</textarea>
+    <div style="height:22px"></div><button class="btn full" id="f_save" data-act="form-save">${T('save')}</button>
+  </div>`;
+  const fi = $('f_files');
+  if (fi) fi.addEventListener('change', async () => {
+    readForm();
+    const files = [...fi.files].slice(0, 10 - F.photos.length);
+    for (const f of files) {
+      try { const data = await compress(f); F.photos.push({ data, url: data }); } catch (e) { tg.alert(T('err') + ': ' + e.message); }
+    }
+    renderForm();
+  });
+}
+function compress(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const max = 1280; let w = img.naturalWidth, h = img.naturalHeight;
+      const k = Math.min(1, max / Math.max(w, h)); w = Math.round(w * k); h = Math.round(h * k);
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url); resolve(c.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image')); };
+    img.src = url;
+  });
+}
+async function saveForm() {
+  readForm();
+  const F = S.form;
+  if (!F.title_ru.trim() && !F.title_en.trim()) return tg.alert(T('needTitle'));
+  const btn = $('f_save'); btn.disabled = true; btn.textContent = T('saving');
+  try {
+    await api(F.id ? '/api/admin/products/' + F.id : '/api/admin/products', {
+      method: F.id ? 'PUT' : 'POST',
+      body: { title_ru: F.title_ru, title_en: F.title_en, desc_ru: F.desc_ru, desc_en: F.desc_en, price: F.price, category: F.category,
+        sizes: F.sizes, sold: F.sold, photos: F.photos.map(p => p.id ? { id: p.id } : { data: p.data }) }
+    });
+    await loadProducts();
+    S.form = null; $('fm').classList.remove('show'); updateBack(); render();
+  } catch (e) { btn.disabled = false; btn.textContent = T('save'); tg.alert(T('err') + ': ' + e.message); }
+}
+
+/* ---------- navigation ---------- */
+function updateBack() {
+  const open = !!(S.pv || S.form);
+  try { open ? WA.BackButton.show() : WA.BackButton.hide(); } catch (e) {}
+}
+function closeTop() {
+  if (S.form) { S.form = null; $('fm').classList.remove('show'); }
+  else if (S.pv) { S.pv = null; $('pv').classList.remove('show'); }
+  updateBack();
+}
+try { WA.BackButton.onClick(closeTop); } catch (e) {}
+
+async function loadProducts() { S.products = await api('/api/products'); }
+
+document.addEventListener('click', async e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const act = el.dataset.act, id = Number(el.dataset.id);
+  if (act === 'fav') { e.stopPropagation(); return toggleFav(id); }
+  if (act === 'open') return openProduct(id);
+  if (act === 'msg') return messageManager(id);
+  if (act === 'tab') { S.tab = el.dataset.tab; S.q = ''; render(); scrollTo(0, 0); return; }
+  if (act === 'cat') { S.cat = el.dataset.cat; $('app').innerHTML = viewCatalog(); return; }
+  if (act === 'tiktok') return tg.link(S.cfg.tiktok);
+  if (act === 'new') return newForm(null);
+  if (act === 'edit') return newForm(S.products.find(p => p.id === id));
+  if (act === 'toggle') { try { await api('/api/admin/products/' + id + '/sold', { method: 'PATCH' }); await loadProducts(); render(); } catch (er) { tg.alert(T('err')); } return; }
+  if (act === 'del') return tg.confirm(T('confirmDel'), async ok => {
+    if (!ok) return;
+    try { await api('/api/admin/products/' + id, { method: 'DELETE' }); await loadProducts(); render(); } catch (er) { tg.alert(T('err')); }
+  });
+  if (act === 'form-close') return closeTop();
+  if (act === 'form-save') return saveForm();
+  if (act === 'ph-del') { readForm(); S.form.photos.splice(Number(el.dataset.i), 1); return renderForm(); }
+  if (act === 'ph-first') { readForm(); const [ph] = S.form.photos.splice(Number(el.dataset.i), 1); S.form.photos.unshift(ph); return renderForm(); }
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'q') { S.q = e.target.value; refreshGrid(); }
+});
+$('lang').addEventListener('click', () => {
+  S.lang = S.lang === 'ru' ? 'en' : 'ru';
+  try { localStorage.setItem('lang', S.lang); } catch (e) {}
+  if (S.form) readForm();
+  render();
+});
+
+(async function init() {
+  try {
+    const d = await api('/api/bootstrap');
+    S.cfg = d.config; S.isAdmin = d.isAdmin; S.products = d.products; S.favs = new Set(d.favorites);
+    document.title = S.cfg.shop;
+  } catch (e) { $('app').innerHTML = '<div class="empty">Connection error</div>'; return; }
+  render();
+})();
+</script>
+</body>
+</html>
