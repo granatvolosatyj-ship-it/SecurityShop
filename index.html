@@ -51,6 +51,7 @@ nav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;st
 .soc{display:inline-flex;margin-top:14px;align-items:center;gap:8px;border:1px solid var(--line);background:#0b0b0c;color:#fff;border-radius:20px;padding:11px 18px;font-size:14px}
 .overlay{position:fixed;inset:0;background:#000;z-index:50;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch}
 .overlay.show{display:block}
+.pback{position:fixed;top:12px;left:12px;z-index:70;width:38px;height:38px;border:0;border-radius:50%;padding:0;display:grid;place-items:center;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:20px;line-height:1}
 .gal{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;background:#0b0b0c}
 .gal::-webkit-scrollbar{display:none}
 .gal .slide{flex:0 0 100%;scroll-snap-align:start;aspect-ratio:3/4;max-height:68vh;width:100%}
@@ -237,7 +238,7 @@ const I = {
     spin:'Крутить', spinTest:'Крутить (тест)', next:'Следующая попытка через', won:'Ваш приз', forItem:'На товар',
     showSeller:'Покажите этот экран продавцу', left:'Действует ещё', used:'Приз уже использован', expired:'Срок приза истёк',
     code:'Код', priceWith:'Цена с призом', openItem:'Открыть товар', wsoon:'Розыгрыш скоро откроется', cool:'Вы уже крутили сегодня',
-    found:'Найдено', stock:['товар','товара','товаров'], inStock:'в наличии', tapWheel:'Крутить колесо', toCatalog:'Перейти в каталог' },
+    found:'Найдено', stock:['товар','товара','товаров'], inStock:'в наличии', tapWheel:'Крутить колесо', back:'Назад', toCatalog:'Перейти в каталог' },
   en: { home:'Home', catalog:'Catalog', fav:'Favorites', admin:'Admin', search:'Search', all:'All',
     sizes:'Sizes', desc:'Description', msg:'Message the manager', sold:'Sold',
     emptyAll:'No items yet', emptyFav:'Nothing here yet. Tap the heart to save items.', nothing:'Nothing found',
@@ -251,7 +252,7 @@ const I = {
     spin:'Spin', spinTest:'Spin (test)', next:'Next try in', won:'Your prize', forItem:'For item',
     showSeller:'Show this screen to the seller', left:'Valid for', used:'Prize already used', expired:'Prize expired',
     code:'Code', priceWith:'Price with prize', openItem:'Open item', wsoon:'The giveaway opens soon', cool:"You've already spun today",
-    found:'Found', stock:['item','items','items'], inStock:'in stock', tapWheel:'Spin the wheel', toCatalog:'Go to catalog' }
+    found:'Found', stock:['item','items','items'], inStock:'in stock', tapWheel:'Spin the wheel', back:'Back', toCatalog:'Go to catalog' }
 };
 const ICON = {
   home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
@@ -606,7 +607,7 @@ function renderProduct() {
   const slides = p.photos.length ? p.photos.map(id => `<div class="slide"><img src="/img/${id}"></div>`).join('') : '<div class="slide"><div class="noimg"></div></div>';
   const dots = p.photos.length > 1 ? `<div class="dots">${p.photos.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : '';
   const sz = sizesOf(p), ds = tr(p, 'desc');
-  $('pv').innerHTML = `<div class="gal" id="gal">${slides}</div>${dots}
+  $('pv').innerHTML = `<button class="pback" data-act="pv-close">←</button><div class="gal" id="gal">${slides}</div>${dots}
     <div class="pbody"><small>${esc(p.brand || p.category)}</small><h2>${esc(tr(p, 'title'))}</h2>
     <span class="price">${price(p.price)}</span>${d ? `<span class="old" style="font-size:16px">${price(p.old_price)}</span> <span class="badge sale" style="position:static;display:inline-block;margin-left:6px">-${d}%</span>` : ''}
     ${p.sold ? `<div style="margin-top:8px;color:var(--red);font-weight:700">${T('sold')}</div>` : ''}
@@ -819,7 +820,7 @@ document.addEventListener('click', async e => {
   if (act === 'pz-on') return admCall('/api/admin/prizes/' + id + '/active', 'PATCH');
   if (act === 'pz-del') return tg.confirm('Удалить приз?', ok => { if (ok) admCall('/api/admin/prizes/' + id, 'DELETE'); });
   if (act === 'spin-redeem') return admCall('/api/admin/spins/' + id + '/redeem', 'PATCH');
-  if (act === 'form-close') return closeTop();
+  if (act === 'form-close' || act === 'pv-close') return closeTop();
   if (act === 'form-save') return saveForm();
   if (act === 'ph-del') { readForm(); S.form.photos.splice(Number(el.dataset.i), 1); return renderForm(); }
   if (act === 'ph-first') { readForm(); const [ph] = S.form.photos.splice(Number(el.dataset.i), 1); S.form.photos.unshift(ph); return renderForm(); }
