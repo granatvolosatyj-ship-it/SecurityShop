@@ -140,7 +140,13 @@ h1.row{display:flex;align-items:center;gap:10px}
 .sec{display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px}
 .sec h2{margin:0;font-size:22px}
 .sec button{background:none;border:0;color:var(--red);font-size:14px;font-weight:700}
-.badge.sale{background:linear-gradient(90deg,#e5484d,#a3202a)}
+.badge.sale{background:linear-gradient(90deg,#e5484d,#a3202a);overflow:hidden;box-shadow:0 0 12px rgba(229,72,77,.55)}
+.badge.sale:after{content:"";position:absolute;top:0;left:-70%;width:45%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.75),transparent);transform:skewX(-20deg);animation:shine 2.6s ease-in-out infinite}
+@keyframes shine{0%{left:-70%}55%,100%{left:130%}}
+.tbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.tile.hasimg:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,.78))}
+.tile.sq>div,.tile.sq>small{position:relative;z-index:2}
+.tile.hasimg svg.mw{display:none}
 .old{color:var(--mut);text-decoration:line-through;font-size:13px;margin-left:6px;font-weight:500}
 .fbar{display:flex;gap:8px;overflow-x:auto;padding:0 0 12px;scrollbar-width:none}
 .fbar::-webkit-scrollbar{display:none}
@@ -164,9 +170,9 @@ h1.row{display:flex;align-items:center;gap:10px}
 .prow{display:flex;gap:10px}
 .prow input{flex:1;min-width:0;background:#0b0b0c;border:1px solid var(--line);border-radius:14px;padding:14px;color:#fff;font-size:16px;outline:none}
 .wwrap{position:relative;width:min(84vw,340px);aspect-ratio:1;margin:8px auto 18px}
-.wwrap .ptr{position:absolute;left:50%;top:-10px;transform:translateX(-50%);width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:26px solid #fff;z-index:3;filter:drop-shadow(0 2px 4px #000)}
-.wheel{width:100%;height:100%;transition:transform 5s cubic-bezier(.12,.7,.1,1);filter:drop-shadow(0 0 22px rgba(229,72,77,.35))}
-.hub{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:#000;border:3px solid #fff;display:grid;place-items:center;font-weight:900;font-size:11px;z-index:2}
+.wwrap .ptr{position:absolute;left:50%;top:-12px;transform:translateX(-50%);width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;border-top:32px solid #f5cf6b;z-index:3;filter:drop-shadow(0 3px 5px #000)}
+.wheel{width:100%;height:100%;transition:transform 5s cubic-bezier(.12,.7,.1,1);filter:drop-shadow(0 0 26px rgba(229,72,77,.5))}
+.hub{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff1b8,#d9a441 55%,#8a5a12);border:3px solid #fff4c4;box-shadow:0 0 14px rgba(245,207,107,.6);display:grid;place-items:center;font-weight:900;font-size:13px;color:#3a2500;z-index:2}
 .pz{border:1.5px solid var(--red);border-radius:24px;padding:18px;background:radial-gradient(circle at 100% 0,#3a0d12,#0b0b0c 70%);margin-top:6px}
 .pz h3{margin:0 0 4px;font-size:15px;color:#ffb3b6;text-transform:uppercase;letter-spacing:.06em}
 .pz .pv{font-size:34px;font-weight:900;margin:2px 0 8px}
@@ -224,28 +230,28 @@ const I = {
     err:'Ошибка', about:'Мультибрендовый магазин одежды', tiktok:'Мы в TikTok',
     hi:'Здравствуйте! Меня интересует: ', noManager:'Контакт менеджера не настроен',
     brand:'Бренд', size:'Размер', priceF:'Цена', sort:'Сортировка', done:'Готово', reset:'Сбросить', from:'От', to:'До',
-    s_def:'По умолчанию', s_date:'По дате', s_asc:'Дешевле', s_desc:'Дороже', s_disc:'По размеру скидки',
+    s_def:'По умолчанию', s_date:'По дате', s_asc:'Цена: дешевле', s_desc:'Цена: дороже', s_disc:'Скидка: больше',s_discAsc:'Скидка: меньше',
     sale:'Скидки', upto:'до', soon:'скоро', onSale:'Вещи со скидкой', newest:'Новинки', seeAll:'Смотреть все',
     wheel:'Колесо призов', wheelSub:'Крутите раз в 24 часа', wheelTitle:'Ежедневный розыгрыш',
     wheelHow:'1 спин каждые 24 часа. Приз действует 24 часа на выбранный товар.',
     spin:'Крутить', spinTest:'Крутить (тест)', next:'Следующая попытка через', won:'Ваш приз', forItem:'На товар',
     showSeller:'Покажите этот экран продавцу', left:'Действует ещё', used:'Приз уже использован', expired:'Срок приза истёк',
     code:'Код', priceWith:'Цена с призом', openItem:'Открыть товар', wsoon:'Розыгрыш скоро откроется', cool:'Вы уже крутили сегодня',
-    found:'Найдено', stock:['товар','товара','товаров'], inStock:'в наличии', tapWheel:'Крутить колесо' },
+    found:'Найдено', stock:['товар','товара','товаров'], inStock:'в наличии', tapWheel:'Крутить колесо', toCatalog:'Перейти в каталог' },
   en: { home:'Home', catalog:'Catalog', fav:'Favorites', admin:'Admin', search:'Search', all:'All',
     sizes:'Sizes', desc:'Description', msg:'Message the manager', sold:'Sold',
     emptyAll:'No items yet', emptyFav:'Nothing here yet. Tap the heart to save items.', nothing:'Nothing found',
     err:'Error', about:'Multi-brand clothing store', tiktok:'Follow us on TikTok',
     hi:"Hi! I'm interested in: ", noManager:'Manager contact is not configured',
     brand:'Brand', size:'Size', priceF:'Price', sort:'Sort', done:'Done', reset:'Reset', from:'From', to:'To',
-    s_def:'Default', s_date:'Newest', s_asc:'Cheaper', s_desc:'More expensive', s_disc:'Biggest discount',
+    s_def:'Default', s_date:'Newest', s_asc:'Price: low to high', s_desc:'Price: high to low', s_disc:'Discount: high to low',s_discAsc:'Discount: low to high',
     sale:'Sale', upto:'up to', soon:'soon', onSale:'Items on sale', newest:'New arrivals', seeAll:'See all',
     wheel:'Prize wheel', wheelSub:'Spin once every 24 hours', wheelTitle:'Daily giveaway',
     wheelHow:'1 spin every 24 hours. The prize is valid for 24 hours on the chosen item.',
     spin:'Spin', spinTest:'Spin (test)', next:'Next try in', won:'Your prize', forItem:'For item',
     showSeller:'Show this screen to the seller', left:'Valid for', used:'Prize already used', expired:'Prize expired',
     code:'Code', priceWith:'Price with prize', openItem:'Open item', wsoon:'The giveaway opens soon', cool:"You've already spun today",
-    found:'Found', stock:['item','items','items'], inStock:'in stock', tapWheel:'Spin the wheel' }
+    found:'Found', stock:['item','items','items'], inStock:'in stock', tapWheel:'Spin the wheel', toCatalog:'Go to catalog' }
 };
 const ICON = {
   home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
@@ -256,7 +262,7 @@ const ICON = {
 };
 
 const S = { lang: null, products: [], favs: new Set(), isAdmin: false, cfg: { shop:'SecurityShop', manager:'', tiktok:'' },
-  brands: [], banners: [], prizes: [], home: { cover: null, wheelProduct: null }, spin: null,
+  brands: [], banners: [], prizes: [], home: { cover: null, coverSale: null, coverWheel: null, wheelProduct: null }, spin: null,
   tab: 'home', q: '', cat: '', fBrand: new Set(), fSize: new Set(), pmin: '', pmax: '', sort: 'def', sheet: null,
   at: 'items', aPrizes: [], aSpins: [], pv: null, form: null, rot: 0, spinning: false };
 try { S.lang = localStorage.getItem('lang'); } catch(e){}
@@ -311,7 +317,7 @@ function list(mode) {
     return (p.title_ru + ' ' + p.title_en + ' ' + p.category + ' ' + p.brand).toLowerCase().includes(q);
   });
   const by = { date: (a, b) => new Date(b.created_at) - new Date(a.created_at), asc: (a, b) => a.price - b.price,
-    desc: (a, b) => b.price - a.price, disc: (a, b) => disc(b) - disc(a) }[S.sort];
+    desc: (a, b) => b.price - a.price, disc: (a, b) => disc(b) - disc(a), discAsc: (a, b) => disc(a) - disc(b) }[S.sort];
   if (by) r = r.slice().sort(by);
   return r;
 }
@@ -329,7 +335,7 @@ function gridHtml(l, emptyKey) {
   if (!l.length) return `<div class="empty"><div class="circle">${ICON.search}</div>${T(emptyKey || 'nothing')}</div>`;
   return l.map(card).join('');
 }
-const searchBox = () => `<div class="search">${ICON.search}<input id="q" type="search" value="${esc(S.q)}" placeholder="${T('search')}"></div>`;
+const searchBox = (id = 'q') => `<div class="search">${ICON.search}<input id="${id}" type="search" value="${esc(S.q)}" placeholder="${T('search')}"></div>`;
 function footer() {
   return `<div class="foot"><div class="logo">${esc(S.cfg.shop)}</div>${T('about')}<br>
     ${S.cfg.tiktok ? `<button class="soc" data-act="tiktok">♪ ${T('tiktok')}</button>` : ''}</div>`;
@@ -371,14 +377,15 @@ function viewHome() {
     `<button class="tile big" data-act="tab" data-tab="catalog">${coverHtml()}<div class="ar">→</div>
       <div class="tx"><b>${T('catalog')}</b><span>${n} ${plural(n)} ${T('inStock')}</span></div></button>
     <div class="two">
-      <button class="tile sq sale" data-act="tab" data-tab="sale"><small>${T('sale')}</small>
+      <button class="tile sq sale ${S.home.coverSale ? 'hasimg' : ''}" data-act="tab" data-tab="sale">${S.home.coverSale ? `<img class="tbg" src="/asset/${S.home.coverSale}">` : ''}<small>${T('sale')}</small>
         <div class="big2">${md ? `<span style="font-size:18px;font-weight:700;color:#ffb3b6">${T('upto')}</span><br>${md}<em>%</em>` : `<span style="font-size:22px">${T('soon')}</span>`}</div>
         <div class="sub">${T('onSale')}</div></button>
-      <button class="tile sq whl" data-act="tab" data-tab="wheel"><small>${T('wheelTitle')}</small>
+      <button class="tile sq whl ${S.home.coverWheel ? 'hasimg' : ''}" data-act="tab" data-tab="wheel">${S.home.coverWheel ? `<img class="tbg" src="/asset/${S.home.coverWheel}">` : ''}<small>${T('wheelTitle')}</small>
         <div class="t2">${T('wheel')}</div><div class="sub" style="max-width:58%;margin-bottom:6px">${T('wheelSub')}</div>${miniWheel()}</button>
     </div>` + mq +
-    (news.length ? `<div class="sec"><h2>${T('newest')}</h2><button data-act="tab" data-tab="catalog">${T('seeAll')} →</button></div>
-      <div class="grid">${news.map(card).join('')}</div>` : '') + footer();
+    (news.length ? searchBox('hq') + `<div class="sec"><h2>${T('newest')}</h2><button data-act="tab" data-tab="catalog">${T('seeAll')} →</button></div>
+      <div class="grid">${news.map(card).join('')}</div>
+      <button class="btn full" style="margin-top:16px" data-act="tab" data-tab="catalog">${T('toCatalog')} →</button>` : '') + footer();
 }
 
 /* ---------- CATALOG / SALE ---------- */
@@ -415,7 +422,7 @@ function sheetHtml() {
   const k = S.sheet, opt = (on, label, act, v, cls) => `<button class="opt ${on ? 'on' : ''}" data-act="${act}" data-v="${esc(v)}"><span class="rd ${cls || ''}"></span>${label}</button>`;
   let h = '';
   if (k === 'sort') {
-    h = `<h3>${T('sort')}</h3>` + [['def', 's_def'], ['date', 's_date'], ['asc', 's_asc'], ['desc', 's_desc'], ['disc', 's_disc']]
+    h = `<h3>${T('sort')}</h3>` + [['def', 's_def'], ['date', 's_date'], ['asc', 's_asc'], ['desc', 's_desc'], ['disc', 's_disc'], ['discAsc', 's_discAsc']]
       .map(([v, t]) => opt(S.sort === v, T(t), 'sh-sort', v)).join('');
   } else if (k === 'brand') {
     const bs = [...new Set(S.products.map(p => p.brand).filter(Boolean))].sort();
@@ -436,14 +443,23 @@ function hideSheet() { S.sheet = null; $('sheet').classList.remove('show'); $('s
 /* ---------- WHEEL ---------- */
 function wheelSvg() {
   const P = S.prizes, N = P.length; if (N < 2) return '';
-  const R = 150, C = 150, a = 2 * Math.PI / N; let sl = '';
+  const R = 132, C = 150, a = 2 * Math.PI / N; let sl = '';
   P.forEach((z, i) => {
     const x1 = C + R * Math.sin(i * a), y1 = C - R * Math.cos(i * a), x2 = C + R * Math.sin((i + 1) * a), y2 = C - R * Math.cos((i + 1) * a);
-    sl += `<path d="M${C} ${C} L${x1} ${y1} A${R} ${R} 0 0 1 ${x2} ${y2} Z" fill="${i % 2 ? '#141416' : '#e5484d'}" stroke="#000" stroke-width="1.5"/>`;
+    sl += `<path d="M${C} ${C} L${x1} ${y1} A${R} ${R} 0 0 1 ${x2} ${y2} Z" fill="url(#${i % 2 ? 'gd' : 'gr'})" stroke="#e8c46a" stroke-width="1.2"/>`;
     const c = (i + .5) * 360 / N;
-    sl += `<g transform="rotate(${c} ${C} ${C})"><text x="${C}" y="${C - 108}" transform="rotate(-90 ${C} ${C - 108})" text-anchor="middle" dominant-baseline="middle" fill="#fff" font-size="${N > 8 ? 15 : 19}" font-weight="900">${esc(prizeLabel({ kind: z.kind, value: z.value }))}</text></g>`;
+    sl += `<g transform="rotate(${c} ${C} ${C})"><text x="${C}" y="${C - 92}" transform="rotate(-90 ${C} ${C - 92})" text-anchor="middle" dominant-baseline="middle" fill="#fff" stroke="rgba(0,0,0,.55)" stroke-width=".8" paint-order="stroke" font-size="${N > 8 ? 15 : 19}" font-weight="900">${esc(prizeLabel({ kind: z.kind, value: z.value }))}</text></g>`;
   });
-  return `<svg class="wheel" id="wheel" viewBox="0 0 300 300" style="transform:rotate(${S.rot}deg)"><circle cx="150" cy="150" r="149" fill="#000" stroke="#fff" stroke-width="2"/>${sl}</svg>`;
+  let bulbs = '';
+  for (let k = 0; k < 20; k++) { const t = k * Math.PI / 10; bulbs += `<circle cx="${C + 141 * Math.sin(t)}" cy="${C - 141 * Math.cos(t)}" r="3.6" fill="${k % 2 ? '#fff4c4' : '#ff7a7e'}"><animate attributeName="opacity" values="${k % 2 ? '1;.25;1' : '.25;1;.25'}" dur="1.4s" repeatCount="indefinite"/></circle>`; }
+  return `<svg class="wheel" id="wheel" viewBox="0 0 300 300" style="transform:rotate(${S.rot}deg)">
+    <defs>
+      <radialGradient id="gr" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#a3202a"/><stop offset="1" stop-color="#ff5a60"/></radialGradient>
+      <radialGradient id="gd" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#050506"/><stop offset="1" stop-color="#2a2a30"/></radialGradient>
+      <linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff1b8"/><stop offset=".5" stop-color="#d9a441"/><stop offset="1" stop-color="#8a5a12"/></linearGradient>
+    </defs>
+    <circle cx="150" cy="150" r="149" fill="url(#gg)"/><circle cx="150" cy="150" r="134" fill="#000"/>${sl}${bulbs}
+    <circle cx="150" cy="150" r="133.5" fill="none" stroke="url(#gg)" stroke-width="2.5"/></svg>`;
 }
 function spinState() {
   const z = S.spin, now = Date.now();
@@ -506,6 +522,11 @@ setInterval(() => {
 
 /* ---------- ADMIN ---------- */
 const targets = [['', 'Без перехода'], ['catalog', 'Каталог'], ['sale', 'Скидки'], ['wheel', 'Колесо призов'], ['tiktok', 'TikTok']];
+function covBlock(k, title, id, none) {
+  return `<div class="sub2">${title}</div>${id ? `<img class="cvp" src="/asset/${id}">` : `<div class="hint" style="margin-bottom:8px">${none}</div>`}
+    <label class="fileb">Загрузить своё фото<input type="file" accept="image/*" data-ch="cover:${k}"></label>
+    ${id ? `<button class="sm" style="margin-top:8px" data-act="cover-del" data-k="${k}">Убрать фото</button>` : ''}`;
+}
 function viewAdmin() {
   const tabs = [['items', 'Товары'], ['home', 'Главная'], ['wheel', 'Колесо']];
   let h = `<h1>${T('admin')}</h1><div class="chips adm">${tabs.map(([k, t]) => `<button class="chip ${S.at === k ? 'on' : ''}" data-act="atab" data-at="${k}">${t}</button>`).join('')}</div>`;
@@ -519,10 +540,10 @@ function viewAdmin() {
         <div class="ai"><b>${esc(b.title_ru || b.title_en || '(без названия)')}</b><span>${esc((targets.find(t => t[0] === b.target) || [])[1] || '')}</span></div>
         <div class="ab"><button data-act="bn-edit" data-id="${b.id}">✎</button><button data-act="bn-del" data-id="${b.id}">✕</button></div></div>`).join('') +
       (S.banners.length ? '' : '<div class="hint">Пока своих баннеров нет — показываются стандартные (TikTok и Колесо).</div>') +
-      `<div class="sub2">Фото плитки «Каталог»</div>${S.home.cover ? `<img class="cvp" src="/asset/${S.home.cover}">` : '<div class="hint">Сейчас — автоколлаж из фото последних товаров.</div>'}
-      <label class="fileb">Загрузить своё фото<input type="file" accept="image/*" data-ch="cover"></label>
-      ${S.home.cover ? '<button class="sm" style="margin-top:8px" data-act="cover-del">Убрать (вернуть коллаж)</button>' : ''}
-      <div class="sub2">Бренды (бегущая строка)</div>
+      covBlock('cover', 'Фото плитки «Каталог»', S.home.cover, 'Сейчас — автоколлаж из фото последних товаров.') +
+      covBlock('cover_sale', 'Фото плитки «Скидки»', S.home.coverSale, 'Сейчас — красный фон.') +
+      covBlock('cover_wheel', 'Фото плитки «Колесо призов»', S.home.coverWheel, 'Сейчас — красный фон с колесом.') +
+      `<div class="sub2">Бренды (бегущая строка)</div>
       <div class="inl"><input id="nb" type="text" placeholder="Название бренда"><button data-act="brand-add">+</button></div>` +
       S.brands.map(b => `<div class="wrow"><div class="r2"><b>${esc(b.name)}</b><button class="sm" data-act="brand-del" data-id="${b.id}">Удалить</button></div></div>`).join('') +
       `<div class="sub2">Ссылка TikTok</div><div class="inl"><input id="tk" type="text" value="${esc(S.cfg.tiktok)}"><button data-act="tk-save">OK</button></div>`;
@@ -790,7 +811,7 @@ document.addEventListener('click', async e => {
   if (act === 'bn-edit') return newBanner(S.banners.find(b => b.id === id));
   if (act === 'bn-del') return tg.confirm('Удалить баннер?', ok => { if (ok) admCall('/api/admin/banners/' + id, 'DELETE'); });
   if (act === 'b-noimg') { readForm(); S.form.url = ''; S.form.image = null; S.form.removeImage = true; return renderBannerForm(); }
-  if (act === 'cover-del') return admCall('/api/admin/settings', 'PUT', { cover: null });
+  if (act === 'cover-del') return admCall('/api/admin/settings', 'PUT', { [el.dataset.k]: null });
   if (act === 'brand-add') { const v = $('nb').value.trim(); if (v) admCall('/api/admin/brands', 'POST', { name: v }); return; }
   if (act === 'brand-del') return tg.confirm('Удалить бренд из списка?', ok => { if (ok) admCall('/api/admin/brands/' + id, 'DELETE'); });
   if (act === 'tk-save') return admCall('/api/admin/settings', 'PUT', { tiktok: $('tk').value }, () => tg.alert('Сохранено'));
@@ -806,12 +827,16 @@ document.addEventListener('click', async e => {
 document.addEventListener('change', async e => {
   const k = e.target.dataset && e.target.dataset.ch; if (!k) return;
   if (k === 'wprod') return admCall('/api/admin/settings', 'PUT', { wheel_product: e.target.value });
-  if (k === 'cover' && e.target.files[0]) {
-    try { const data = await compress(e.target.files[0], 1600); await admCall('/api/admin/settings', 'PUT', { cover: data }); } catch (er) { tg.alert(T('err')); }
+  if (k.startsWith('cover:') && e.target.files[0]) {
+    try { const data = await compress(e.target.files[0], 1600); await admCall('/api/admin/settings', 'PUT', { [k.slice(6)]: data }); } catch (er) { tg.alert(T('err')); }
   }
 });
 document.addEventListener('input', e => {
   if (e.target.id === 'q') { S.q = e.target.value; refreshGrid(); }
+  if (e.target.id === 'hq') {
+    S.q = e.target.value; S.tab = 'catalog'; S.cat = ''; render(); scrollTo(0, 0);
+    const el = $('q'); if (el) { el.focus(); el.setSelectionRange(S.q.length, S.q.length); }
+  }
   if (e.target.id === 'sh_min') S.pmin = e.target.value;
   if (e.target.id === 'sh_max') S.pmax = e.target.value;
 });

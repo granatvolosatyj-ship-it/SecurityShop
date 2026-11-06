@@ -287,7 +287,7 @@ app.get('/api/bootstrap', h(async (req, res) => {
     brands: brands.rows,
     banners: banners.rows,
     prizes: prizes.rows,
-    home: { cover: Number(st.cover) || null, wheelProduct: products.some(p => p.id === wp) ? wp : null },
+    home: { cover: Number(st.cover) || null, coverSale: Number(st.cover_sale) || null, coverWheel: Number(st.cover_wheel) || null, wheelProduct: products.some(p => p.id === wp) ? wp : null },
     spin,
   });
 }));
@@ -367,12 +367,13 @@ app.put('/api/admin/settings', requireAdmin, h(async (req, res) => {
   const b = req.body || {};
   if (typeof b.tiktok === 'string') await setSetting('tiktok', b.tiktok.trim());
   if ('wheel_product' in b) await setSetting('wheel_product', String(Number(b.wheel_product) || ''));
-  if (b.cover !== undefined) {
-    const old = Number((await getSettings()).cover) || 0;
+  for (const k of ['cover', 'cover_sale', 'cover_wheel']) {
+    if (b[k] === undefined) continue;
+    const old = Number((await getSettings())[k]) || 0;
     let nid = '';
-    if (b.cover) nid = String((await newAsset(b.cover)) || '');
-    if (b.cover === null || nid) {
-      await setSetting('cover', nid);
+    if (b[k]) nid = String((await newAsset(b[k])) || '');
+    if (b[k] === null || nid) {
+      await setSetting(k, nid);
       if (old) await pool.query('delete from assets where id=$1', [old]);
     }
   }
