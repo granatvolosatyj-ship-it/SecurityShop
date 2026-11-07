@@ -146,7 +146,6 @@ h1.row{display:flex;align-items:center;gap:10px}
 @keyframes shine{0%{left:-70%}55%,100%{left:130%}}
 .tbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .tile.hasimg:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,.78))}
-.tile.sq>div,.tile.sq>small{position:relative;z-index:2}
 .tile.hasimg svg.mw{display:none}
 .old{color:var(--mut);text-decoration:line-through;font-size:13px;margin-left:6px;font-weight:500}
 .fbar{display:flex;gap:8px;overflow-x:auto;padding:0 0 12px;scrollbar-width:none}
@@ -198,6 +197,20 @@ h1.row{display:flex;align-items:center;gap:10px}
 .cvp{width:100%;aspect-ratio:16/8;border-radius:16px;object-fit:cover;background:#0b0b0c;border:1px solid var(--line);margin-bottom:8px;display:block}
 .fileb{position:relative;display:block;text-align:center;border:1px dashed #3a3a40;border-radius:14px;padding:14px;color:var(--mut);font-size:15px}
 .fileb input{position:absolute;inset:0;opacity:0;width:100%;height:100%}
+.tile{box-shadow:none;border:1px solid #2a2a2e}
+.tile.big{height:118px;margin-bottom:12px;border:1.5px solid var(--red)}
+.tile.sq{height:104px;aspect-ratio:auto;padding:0;display:block}
+.tile.sale{background:linear-gradient(135deg,#d6393f,#7d1520);border:0}
+.tile.whl{background:#0e0e10}
+.tile .tx{left:18px;bottom:auto;top:50%;transform:translateY(-50%);right:64px}
+.tile .tx b{font-size:20px;font-weight:800;letter-spacing:-.2px;line-height:1.1}
+.tile.big .tx b{font-size:24px}
+.tile .tx span{margin-top:5px;font-size:13px;color:#c9c9cf;font-weight:500}
+.tile.sale .tx span{color:#ffd9db}
+.tile .ar{right:14px;top:50%;transform:translateY(-50%);width:38px;height:38px;background:#fff;color:#000;font-weight:700}
+.two{margin-bottom:16px}
+.tile.sq svg.mw{right:62px;bottom:-22px;width:70px;height:70px;opacity:.35}
+.tile.hasimg svg.mw{display:none}
 </style>
 </head>
 <body>
@@ -238,7 +251,7 @@ const I = {
     spin:'Крутить', spinTest:'Крутить (тест)', next:'Следующая попытка через', won:'Ваш приз', forItem:'На товар',
     showSeller:'Покажите этот экран продавцу', left:'Действует ещё', used:'Приз уже использован', expired:'Срок приза истёк',
     code:'Код', priceWith:'Цена с призом', openItem:'Открыть товар', wsoon:'Розыгрыш скоро откроется', cool:'Вы уже крутили сегодня',
-    found:'Найдено', stock:['товар','товара','товаров'], inStock:'в наличии', tapWheel:'Крутить колесо', back:'Назад', toCatalog:'Перейти в каталог' },
+    found:'Найдено', stock:['товар','товара','товаров'], inStock:'в наличии', tapWheel:'Крутить колесо', wheelShort:'Раз в 24 часа', back:'Назад', toCatalog:'Перейти в каталог' },
   en: { home:'Home', catalog:'Catalog', fav:'Favorites', admin:'Admin', search:'Search', all:'All',
     sizes:'Sizes', desc:'Description', msg:'Message the manager', sold:'Sold',
     emptyAll:'No items yet', emptyFav:'Nothing here yet. Tap the heart to save items.', nothing:'Nothing found',
@@ -252,7 +265,7 @@ const I = {
     spin:'Spin', spinTest:'Spin (test)', next:'Next try in', won:'Your prize', forItem:'For item',
     showSeller:'Show this screen to the seller', left:'Valid for', used:'Prize already used', expired:'Prize expired',
     code:'Code', priceWith:'Price with prize', openItem:'Open item', wsoon:'The giveaway opens soon', cool:"You've already spun today",
-    found:'Found', stock:['item','items','items'], inStock:'in stock', tapWheel:'Spin the wheel', back:'Back', toCatalog:'Go to catalog' }
+    found:'Found', stock:['item','items','items'], inStock:'in stock', tapWheel:'Spin the wheel', wheelShort:'Once every 24h', back:'Back', toCatalog:'Go to catalog' }
 };
 const ICON = {
   home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
@@ -283,6 +296,7 @@ const plural = n => { const w = I[S.lang].stock; if (S.lang === 'en') return n =
 const prizeLabel = z => z.prize_kind === 'percent' || z.kind === 'percent' ? '-' + (z.prize_value || z.value) + '%' : '-' + (z.prize_value || z.value) + ' ₽';
 const withPrize = (p, z) => Math.max(0, z.prize_kind === 'percent' ? Math.round(p.price * (1 - z.prize_value / 100)) : p.price - z.prize_value);
 const dt = s => new Date(s).toLocaleString(S.lang === 'ru' ? 'ru-RU' : 'en-GB', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const hms = ms => { ms = Math.max(0, ms); const s = Math.floor(ms / 1000);
   return [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60].map(x => String(x).padStart(2, '0')).join(':'); };
 
@@ -375,14 +389,12 @@ function viewHome() {
   const mq = brands.length ? `<div class="mq"><div class="mqt">${row.repeat(brands.length < 5 ? 3 : 1)}${row.repeat(brands.length < 5 ? 3 : 1)}</div></div>` : '';
   const news = S.products.filter(p => !p.sold).slice(0, 6);
   return bannersHtml() +
-    `<button class="tile big" data-act="tab" data-tab="catalog">${coverHtml()}<div class="ar">→</div>
-      <div class="tx"><b>${T('catalog')}</b><span>${n} ${plural(n)} ${T('inStock')}</span></div></button>
+    `<button class="tile big" data-act="tab" data-tab="catalog">${coverHtml()}<div class="tx"><b>${T('catalog')}</b><span>${n} ${plural(n)} ${T('inStock')}</span></div><div class="ar">→</div></button>
     <div class="two">
-      <button class="tile sq sale ${S.home.coverSale ? 'hasimg' : ''}" data-act="tab" data-tab="sale">${S.home.coverSale ? `<img class="tbg" src="/asset/${S.home.coverSale}">` : ''}<small>${T('sale')}</small>
-        <div class="big2">${md ? `<span style="font-size:18px;font-weight:700;color:#ffb3b6">${T('upto')}</span><br>${md}<em>%</em>` : `<span style="font-size:22px">${T('soon')}</span>`}</div>
-        <div class="sub">${T('onSale')}</div></button>
-      <button class="tile sq whl ${S.home.coverWheel ? 'hasimg' : ''}" data-act="tab" data-tab="wheel">${S.home.coverWheel ? `<img class="tbg" src="/asset/${S.home.coverWheel}">` : ''}<small>${T('wheelTitle')}</small>
-        <div class="t2">${T('wheel')}</div><div class="sub" style="max-width:58%;margin-bottom:6px">${T('wheelSub')}</div>${miniWheel()}</button>
+      <button class="tile sq sale ${S.home.coverSale ? 'hasimg' : ''}" data-act="tab" data-tab="sale">${S.home.coverSale ? `<img class="tbg" src="/asset/${S.home.coverSale}">` : ''}
+        <div class="tx"><b>${T('sale')}</b><span>${md ? cap(T('upto')) + ' ' + md + '%' : T('soon')}</span></div><div class="ar">→</div></button>
+      <button class="tile sq whl ${S.home.coverWheel ? 'hasimg' : ''}" data-act="tab" data-tab="wheel">${S.home.coverWheel ? `<img class="tbg" src="/asset/${S.home.coverWheel}">` : ''}
+        <div class="tx"><b>${T('wheel')}</b><span>${T('wheelShort')}</span></div><div class="ar">→</div></button>
     </div>` + mq +
     (news.length ? searchBox('hq') + `<div class="sec"><h2>${T('newest')}</h2><button data-act="tab" data-tab="catalog">${T('seeAll')} →</button></div>
       <div class="grid">${news.map(card).join('')}</div>
@@ -419,7 +431,15 @@ function refreshGrid() {
   g.innerHTML = gridHtml(l, S.products.length ? 'nothing' : 'emptyAll');
   if ($('cnt')) $('cnt').textContent = T('found') + ': ' + l.length;
 }
+function discBase(p) { return p.old_price > p.price ? p.old_price : p.price; }
 function sheetHtml() {
+  if (S.sheet === 'disc') {
+    const p = S.products.find(x => x.id === S.discId); if (!p) return '';
+    return `<h3>Скидка на товар</h3><div class="hint" style="margin:0 0 12px;font-size:14px;line-height:1.5">${esc(tr(p, 'title'))}<br>Цена без скидки: <b>${price(discBase(p))}</b></div>
+      <div class="prow"><input id="d_pct" type="number" inputmode="numeric" placeholder="Скидка в % (например 10)" value="${disc(p) || ''}"></div>
+      <div class="hint" id="d_prev" style="font-size:14px;margin-top:10px">${discPrev(p, disc(p))}</div>
+      <div class="shr"><button class="btn g" data-act="disc-off">Убрать скидку</button><button class="btn" data-act="disc-ok">Применить</button></div>`;
+  }
   const k = S.sheet, opt = (on, label, act, v, cls) => `<button class="opt ${on ? 'on' : ''}" data-act="${act}" data-v="${esc(v)}"><span class="rd ${cls || ''}"></span>${label}</button>`;
   let h = '';
   if (k === 'sort') {
@@ -438,6 +458,7 @@ function sheetHtml() {
   const rs = k !== 'sort' ? `<button class="btn g" data-act="sh-reset">${T('reset')}</button>` : '';
   return h + `<div class="shr">${rs}<button class="btn" data-act="sheet-close">${T('done')}</button></div>`;
 }
+function discPrev(p, pct) { return pct > 0 && pct < 100 ? `Новая цена: <b style="color:#ff6b6f">${price(Math.round(discBase(p) * (1 - pct / 100)))}</b> (было ${price(discBase(p))}, -${pct}%)` : 'Введите процент скидки'; }
 function showSheet(k) { S.sheet = k; $('sheet').innerHTML = sheetHtml(); $('sheet').classList.add('show'); $('sbg').classList.add('show'); }
 function hideSheet() { S.sheet = null; $('sheet').classList.remove('show'); $('sbg').classList.remove('show'); }
 
@@ -534,7 +555,7 @@ function viewAdmin() {
   if (S.at === 'items') {
     h += `<button class="btn full" data-act="new">+ Добавить товар</button>` + S.products.map(p => `<div class="arow">${p.photos[0] ? `<img src="/img/${p.photos[0]}">` : '<div class="t"></div>'}
       <div class="ai"><b>${esc(tr(p, 'title'))}</b><span>${price(p.price)}${disc(p) ? ' · -' + disc(p) + '%' : ''}${p.brand ? ' · ' + esc(p.brand) : ''}${p.sold ? ' · продано' : ''}</span></div>
-      <div class="ab"><button data-act="edit" data-id="${p.id}">✎</button><button data-act="toggle" data-id="${p.id}" title="Продан / вернуть">${p.sold ? '↩' : '✓'}</button><button data-act="del" data-id="${p.id}">✕</button></div></div>`).join('');
+      <div class="ab"><button data-act="disc" data-id="${p.id}" title="Скидка">%</button><button data-act="edit" data-id="${p.id}">✎</button><button data-act="toggle" data-id="${p.id}" title="Продан / вернуть">${p.sold ? '↩' : '✓'}</button><button data-act="del" data-id="${p.id}">✕</button></div></div>`).join('');
   } else if (S.at === 'home') {
     h += `<div class="sub2">Баннеры (карусель сверху)</div><button class="btn full" data-act="bn-new">+ Добавить баннер</button>` +
       S.banners.map(b => `<div class="arow">${b.asset_id ? `<img src="/asset/${b.asset_id}">` : '<div class="t"></div>'}
@@ -797,7 +818,15 @@ document.addEventListener('click', async e => {
   if (act === 'cat') { S.cat = el.dataset.cat; $('app').innerHTML = viewCatalog('catalog'); return; }
   if (act === 'tiktok') return tg.link(S.cfg.tiktok);
   if (act === 'sheet') return showSheet(el.dataset.s);
-  if (act === 'sheet-close') { hideSheet(); const y = scrollY; $('app').innerHTML = viewCatalog(S.tab === 'sale' ? 'sale' : 'catalog'); scrollTo(0, y); return; }
+  if (act === 'disc') { S.discId = id; return showSheet('disc'); }
+  if (act === 'disc-ok' || act === 'disc-off') {
+    const p = S.products.find(x => x.id === S.discId); if (!p) return;
+    const base = discBase(p), pct = parseInt($('d_pct').value, 10);
+    if (act === 'disc-ok' && !(pct > 0 && pct < 100)) return tg.alert('Введите скидку от 1 до 99 %');
+    const body = act === 'disc-ok' ? { price: Math.round(base * (1 - pct / 100)), old_price: base } : { price: base, old_price: 0 };
+    hideSheet(); return admCall('/api/admin/products/' + p.id + '/price', 'PATCH', body);
+  }
+  if (act === 'sheet-close') { if (S.sheet === 'disc') return hideSheet(); hideSheet(); const y = scrollY; $('app').innerHTML = viewCatalog(S.tab === 'sale' ? 'sale' : 'catalog'); scrollTo(0, y); return; }
   if (act === 'sh-sort') { S.sort = el.dataset.v; $('sheet').innerHTML = sheetHtml(); return; }
   if (act === 'sh-brand' || act === 'sh-size') { const set = act === 'sh-brand' ? S.fBrand : S.fSize, v = el.dataset.v; set.has(v) ? set.delete(v) : set.add(v); $('sheet').innerHTML = sheetHtml(); return; }
   if (act === 'sh-reset') { if (S.sheet === 'brand') S.fBrand.clear(); if (S.sheet === 'size') S.fSize.clear(); if (S.sheet === 'price') { S.pmin = ''; S.pmax = ''; } $('sheet').innerHTML = sheetHtml(); return; }
@@ -838,6 +867,7 @@ document.addEventListener('input', e => {
     S.q = e.target.value; S.tab = 'catalog'; S.cat = ''; render(); scrollTo(0, 0);
     const el = $('q'); if (el) { el.focus(); el.setSelectionRange(S.q.length, S.q.length); }
   }
+  if (e.target.id === 'd_pct') { const p = S.products.find(x => x.id === S.discId); if (p && $('d_prev')) $('d_prev').innerHTML = discPrev(p, parseInt(e.target.value, 10)); }
   if (e.target.id === 'sh_min') S.pmin = e.target.value;
   if (e.target.id === 'sh_max') S.pmax = e.target.value;
 });

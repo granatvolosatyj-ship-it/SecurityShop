@@ -362,6 +362,13 @@ app.delete('/api/admin/products/:id', requireAdmin, h(async (req, res) => {
   res.json({ ok: true });
 }));
 
+app.patch('/api/admin/products/:id/price', requireAdmin, h(async (req, res) => {
+  const p = Math.max(0, parseInt((req.body || {}).price, 10) || 0);
+  const o = Math.max(0, parseInt((req.body || {}).old_price, 10) || 0);
+  await pool.query('update products set price=$1, old_price=$2 where id=$3', [p, o, Number(req.params.id)]);
+  res.json({ ok: true });
+}));
+
 // ---------- admin: home, brands, banners, wheel ----------
 app.put('/api/admin/settings', requireAdmin, h(async (req, res) => {
   const b = req.body || {};
