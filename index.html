@@ -239,9 +239,34 @@ h1.row{display:flex;align-items:center;gap:10px}
 .fav svg{width:16px;height:16px}
 .card .badge{top:8px;left:8px;font-size:11px;padding:4px 9px;border-radius:9px}
 .card .old{display:block;margin:1px 0 0;white-space:nowrap}
+.mqt span{font-size:13px;font-weight:500;letter-spacing:.14em;color:rgba(255,255,255,.4);margin:0 12px;cursor:pointer}
+.szb{min-width:46px;text-align:center;padding:10px 14px;border:1px solid #2b2b30;border-radius:14px;background:#0b0b0c;font-weight:600;color:#fff;font-size:16px}
+.szb.on{background:#fff;color:#000;border-color:#fff}
+.szb.need{border-color:var(--red);animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.anim .card{animation:cardIn .4s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i,0)*45ms)}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+.anim .card,.anim .tile,.anim .btn{transition:transform .12s}
+.anim .card:active,.anim .tile:active,.anim .btn:active{transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){.anim .card{animation:none}}
+#splash{position:fixed;inset:0;z-index:300;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s}
+#splash.hide{opacity:0;pointer-events:none}
+#splash .sl{font-size:34px;font-weight:900;letter-spacing:.08em;text-align:center;line-height:1.1;animation:spl 1s ease both}
+#splash .sbar{width:90px;height:3px;border-radius:2px;background:#1b1b1e;margin-top:26px;overflow:hidden;position:relative}
+#splash .sbar:after{content:"";position:absolute;top:0;left:-40%;width:40%;height:100%;background:var(--red);animation:sbar 1.1s ease-in-out infinite}
+@keyframes spl{from{opacity:0;transform:scale(.94);letter-spacing:.2em}to{opacity:1;transform:none;letter-spacing:.08em}}
+@keyframes sbar{to{left:100%}}
+.stg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 6px;text-align:center}
+.stc b{display:block;font-size:24px}
+.stc span{font-size:12px;color:var(--mut)}
+.srow{display:flex;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 12px;margin-bottom:6px;font-size:14px}
+.srow b{color:#ff6b6f;flex:none}
+.srow span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 </head>
-<body>
+<body class="anim">
+<div id="splash"><div class="sl">SECURITY<br>SHOP</div><div class="sbar"></div></div>
 <header class="top"><div class="logo" id="logo"></div><button class="lang" id="lang"></button></header>
 <main id="app"></main>
 <nav class="bar" id="nav"></nav>
@@ -279,7 +304,7 @@ const I = {
     spin:'Крутить', spinTest:'Крутить (тест)', next:'Следующая попытка через', won:'Ваш приз', forItem:'На товар',
     showSeller:'Покажите этот экран продавцу', left:'Действует ещё', used:'Приз уже использован', expired:'Срок приза истёк',
     code:'Код', priceWith:'Цена с призом', openItem:'Открыть товар', wsoon:'Розыгрыш скоро откроется', cool:'Вы уже крутили сегодня',
-    found:'Найдено', stock:['товар','товара','товаров'], inStock:'в наличии', tapWheel:'Крутить колесо', wheelShort:'Раз в 24 часа', back:'Назад', toCatalog:'Перейти в каталог' },
+    found:'Найдено', stock:['товар','товара','товаров'], inStock:'в наличии', tapWheel:'Крутить колесо', pickSize:'Выберите размер', share:'Поделиться', wheelShort:'Раз в 24 часа', back:'Назад', toCatalog:'Перейти в каталог' },
   en: { home:'Home', catalog:'Catalog', fav:'Favorites', admin:'Admin', search:'Search', all:'All',
     sizes:'Sizes', desc:'Description', msg:'Message the manager', sold:'Sold',
     emptyAll:'No items yet', emptyFav:'Nothing here yet. Tap the heart to save items.', nothing:'Nothing found',
@@ -293,7 +318,7 @@ const I = {
     spin:'Spin', spinTest:'Spin (test)', next:'Next try in', won:'Your prize', forItem:'For item',
     showSeller:'Show this screen to the seller', left:'Valid for', used:'Prize already used', expired:'Prize expired',
     code:'Code', priceWith:'Price with prize', openItem:'Open item', wsoon:'The giveaway opens soon', cool:"You've already spun today",
-    found:'Found', stock:['item','items','items'], inStock:'in stock', tapWheel:'Spin the wheel', wheelShort:'Once every 24h', back:'Back', toCatalog:'Go to catalog' }
+    found:'Found', stock:['item','items','items'], inStock:'in stock', tapWheel:'Spin the wheel', pickSize:'Choose a size', share:'Share', wheelShort:'Once every 24h', back:'Back', toCatalog:'Go to catalog' }
 };
 const ICON = {
   home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
@@ -306,7 +331,7 @@ const ICON = {
 const S = { lang: null, products: [], favs: new Set(), isAdmin: false, cfg: { shop:'SecurityShop', manager:'', tiktok:'' },
   brands: [], banners: [], prizes: [], home: { cover: null, coverSale: null, coverWheel: null, wheelProduct: null }, spin: null,
   tab: 'home', q: '', cat: '', fBrand: new Set(), fSize: new Set(), pmin: '', pmax: '', sort: 'def', sheet: null,
-  at: 'items', aPrizes: [], aSpins: [], pv: null, form: null, rot: 0, spinning: false };
+  at: 'items', aStats: null, pvSize: '', aPrizes: [], aSpins: [], pv: null, form: null, rot: 0, spinning: false };
 try { S.lang = localStorage.getItem('lang'); } catch(e){}
 if (!S.lang) {
   const lc = (tg.user && tg.user.language_code) || navigator.language || 'ru';
@@ -337,6 +362,17 @@ async function api(path, opt = {}) {
   if (!r.ok) { const e = new Error(await r.text()); e.status = r.status; throw e; }
   return r.json();
 }
+const SPLASH = true; // поставьте false, чтобы убрать заставку
+const t0 = Date.now();
+function hideSplash() {
+  const el = $('splash'); if (!el) return;
+  if (!SPLASH) return el.remove();
+  setTimeout(() => { el.classList.add('hide'); setTimeout(() => el.remove(), 600); }, Math.max(0, 1100 - (Date.now() - t0)));
+}
+function track(kind, pid, size) {
+  if (!tg.initData) return;
+  api('/api/track', { method: 'POST', body: { kind, product_id: pid, size } }).catch(() => {});
+}
 async function loadAll() {
   const d = await api('/api/bootstrap');
   S.cfg = d.config; S.isAdmin = d.isAdmin; S.products = d.products; S.favs = new Set(d.favorites);
@@ -364,11 +400,11 @@ function list(mode) {
   if (by) r = r.slice().sort(by);
   return r;
 }
-function card(p) {
+function card(p, i) {
   const on = S.favs.has(p.id), d = disc(p);
   const img = p.photos[0] ? `<img loading="lazy" src="/img/${p.photos[0]}">` : '<div class="noimg"></div>';
   const badge = p.sold ? `<span class="badge">${T('sold')}</span>` : d ? `<span class="badge sale">-${d}%</span>` : '';
-  return `<div class="card ${p.sold ? 'sold' : ''}" data-act="open" data-id="${p.id}">
+  return `<div class="card ${p.sold ? 'sold' : ''}" style="--i:${Math.min(i || 0, 8)}" data-act="open" data-id="${p.id}">
     <div class="ph">${img}${badge}
     <button class="fav ${on ? 'on' : ''}" data-act="fav" data-id="${p.id}">${ICON.fav}</button></div>
     <div class="meta"><div class="mi"><small>${esc(p.brand || p.category)}</small><b>${esc(tr(p, 'title'))}</b>
@@ -413,7 +449,7 @@ function miniWheel() {
 function viewHome() {
   const n = inStock().length, md = maxDisc();
   const brands = S.brands.map(b => esc(b.name));
-  const row = brands.map(b => `<span>${b}</span><i>●</i>`).join('');
+  const row = brands.map(b => `<span data-act="brand" data-v="${b}">${b}</span><i>●</i>`).join('');
   const mq = brands.length ? `<div class="mq"><div class="mqt">${row.repeat(brands.length < 5 ? 3 : 1)}${row.repeat(brands.length < 5 ? 3 : 1)}</div></div>` : '';
   const news = S.products.filter(p => !p.sold).slice(0, 6);
   return bannersHtml() +
@@ -578,7 +614,7 @@ function covBlock(k, title, id, none) {
     ${id ? `<button class="sm" style="margin-top:8px" data-act="cover-del" data-k="${k}">Убрать фото</button>` : ''}`;
 }
 function viewAdmin() {
-  const tabs = [['items', 'Товары'], ['home', 'Главная'], ['wheel', 'Колесо']];
+  const tabs = [['items', 'Товары'], ['home', 'Главная'], ['wheel', 'Колесо'], ['stats', 'Статистика']];
   let h = `<h1>${T('admin')}</h1><div class="chips adm">${tabs.map(([k, t]) => `<button class="chip ${S.at === k ? 'on' : ''}" data-act="atab" data-at="${k}">${t}</button>`).join('')}</div>`;
   if (S.at === 'items') {
     h += `<button class="btn full" data-act="new">+ Добавить товар</button>` + S.products.map(p => `<div class="arow">${p.photos[0] ? `<img src="/img/${p.photos[0]}">` : '<div class="t"></div>'}
@@ -589,7 +625,7 @@ function viewAdmin() {
       <button class="sm" data-act="bn-new">Баннер с текстом и ссылкой</button><div class="hint">Выберите фото, и баннер появится сразу. Заголовок, текст и ссылку можно добавить кнопкой ✎.</div>` +
       S.banners.map(b => `<div class="arow">${b.asset_id ? `<img src="/asset/${b.asset_id}">` : '<div class="t"></div>'}
         <div class="ai"><b>${esc(b.title_ru || b.title_en || '(без названия)')}</b><span>${esc((targets.find(t => t[0] === b.target) || [])[1] || '')}</span></div>
-        <div class="ab"><button data-act="bn-edit" data-id="${b.id}">✎</button><button data-act="bn-del" data-id="${b.id}">✕</button></div></div>`).join('') +
+        <div class="ab"><button data-act="bn-up" data-id="${b.id}">↑</button><button data-act="bn-down" data-id="${b.id}">↓</button><button data-act="bn-edit" data-id="${b.id}">✎</button><button data-act="bn-del" data-id="${b.id}">✕</button></div></div>`).join('') +
       (S.banners.length ? '' : '<div class="hint">Пока своих баннеров нет — показываются стандартные (TikTok и Колесо).</div>') +
       covBlock('cover', 'Фото плитки «Каталог»', S.home.cover, 'Сейчас — автоколлаж из фото последних товаров.') +
       covBlock('cover_sale', 'Фото плитки «Скидки»', S.home.coverSale, 'Сейчас — красный фон.') +
@@ -598,6 +634,19 @@ function viewAdmin() {
       <div class="inl"><input id="nb" type="text" placeholder="Название бренда"><button data-act="brand-add">+</button></div>` +
       S.brands.map(b => `<div class="wrow"><div class="r2"><b>${esc(b.name)}</b><button class="sm" data-act="brand-del" data-id="${b.id}">Удалить</button></div></div>`).join('') +
       `<div class="sub2">Ссылка TikTok</div><div class="inl"><input id="tk" type="text" value="${esc(S.cfg.tiktok)}"><button data-act="tk-save">OK</button></div>`;
+  } else if (S.at === 'stats') {
+    const s = S.aStats;
+    if (!s) h += '<div class="hint">Загрузка…</div>';
+    else {
+      const rows = (l, none) => l.length ? l.map(x => `<div class="srow"><span>${esc(x.title)}</span><b>${x.n}</b></div>`).join('') : `<div class="hint">${none}</div>`;
+      h += `<div class="stg"><div class="stc"><b>${s.users.d}</b><span>за 24 часа</span></div><div class="stc"><b>${s.users.w}</b><span>за 7 дней</span></div><div class="stc"><b>${s.users.t}</b><span>всего</span></div></div>
+        <div class="hint" style="text-align:center">Уникальные посетители. Всего открытий магазина: ${s.users.opens}</div>
+        <div class="sub2">Чаще всего смотрят (7 дней)</div>${rows(s.views, 'Пока нет данных')}
+        <div class="sub2">Чаще в избранном</div>${rows(s.favs, 'Пока нет данных')}
+        <div class="sub2">Чаще жмут «Написать менеджеру» (7 дней)</div>${rows(s.msgs, 'Пока нет данных')}
+        <div class="sub2">Колесо призов</div><div class="srow"><span>Выиграли призов</span><b>${s.spins.total}</b></div><div class="srow"><span>Из них погашено</span><b>${s.spins.red}</b></div>
+        <div class="hint">Ваши собственные заходы в статистику не входят.</div>`;
+    }
   } else {
     const wp = S.home.wheelProduct, tot = S.aPrizes.filter(z => z.active).reduce((s, z) => s + z.weight, 0) || 1;
     h += `<div class="sub2">На какой товар действует приз</div><select class="sel" data-ch="wprod"><option value="">— не выбран (колесо закрыто) —</option>` +
@@ -619,6 +668,7 @@ function viewAdmin() {
   return h;
 }
 async function adminTabLoad() {
+  if (S.at === 'stats') { try { S.aStats = await api('/api/admin/stats'); } catch (e) {} }
   if (S.at === 'wheel') { try { S.aPrizes = await api('/api/admin/prizes'); S.aSpins = await api('/api/admin/spins'); } catch (e) {} }
 }
 async function reloadAdmin() { await loadAll(); await adminTabLoad(); render(); }
@@ -649,7 +699,7 @@ function setupBanners() {
 }
 
 /* ---------- product page ---------- */
-function openProduct(id) { S.pv = id; renderProduct(); $('pv').classList.add('show'); $('pv').scrollTop = 0; updateBack(); }
+function openProduct(id) { S.pv = id; const pp = S.products.find(x => x.id === id); const ss = pp ? sizesOf(pp) : []; S.pvSize = ss.length === 1 ? ss[0] : ''; track('view', id); renderProduct(); $('pv').classList.add('show'); $('pv').scrollTop = 0; updateBack(); }
 function renderProduct() {
   const p = S.products.find(x => x.id === S.pv);
   if (!p) { closeTop(); return; }
@@ -661,9 +711,10 @@ function renderProduct() {
     <div class="pbody"><small>${esc(p.brand || p.category)}</small><h2>${esc(tr(p, 'title'))}</h2>
     <span class="price">${price(p.price)}</span>${d ? `<span class="old" style="font-size:16px">${price(p.old_price)}</span> <span class="badge sale" style="position:static;display:inline-block;margin-left:6px">-${d}%</span>` : ''}
     ${p.sold ? `<div style="margin-top:8px;color:var(--red);font-weight:700">${T('sold')}</div>` : ''}
-    ${sz.length ? `<h3>${T('sizes')}</h3><div class="sz">${sz.map(s => `<span>${esc(s)}</span>`).join('')}</div>` : ''}
+    ${sz.length ? `<h3>${T('sizes')}</h3><div class="sz" id="szs">${sz.map(s => `<button class="szb ${S.pvSize === s ? 'on' : ''}" data-act="size" data-v="${esc(s)}">${esc(s)}</button>`).join('')}</div>` : ''}
     ${ds ? `<h3>${T('desc')}</h3><p>${esc(ds)}</p>` : ''}</div>
     <div class="pbar"><button class="btn" data-act="msg" data-id="${p.id}">${T('msg')}</button>
+    <button class="btn ghost" data-act="share" data-id="${p.id}" title="${T('share')}"><svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4M5 12v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" transform="translate(-1 0)"/></svg></button>
     <button class="btn ghost ${on ? 'on' : ''}" data-act="fav" data-id="${p.id}">${ICON.fav}</button></div>`;
   const gal = $('gal');
   if (gal) gal.addEventListener('scroll', () => {
@@ -674,10 +725,22 @@ function renderProduct() {
 function messageManager(id) {
   const p = S.products.find(x => x.id === id); if (!p) return;
   if (!S.cfg.manager) return tg.alert(T('noManager'));
-  let text = T('hi') + tr(p, 'title') + ' (' + price(p.price) + ')';
+  if (sizesOf(p).length && !S.pvSize) {
+    document.querySelectorAll('#szs .szb').forEach(b => { b.classList.remove('need'); void b.offsetWidth; b.classList.add('need'); });
+    return tg.alert(T('pickSize'));
+  }
+  let text = T('hi') + tr(p, 'title') + ' (' + price(p.price) + ')' + (S.pvSize ? ', ' + T('size').toLowerCase() + ': ' + S.pvSize : '');
   const { z, active } = spinState();
   if (active && z.product_id === p.id) text += ` — ${S.lang === 'ru' ? 'приз' : 'prize'} ${prizeLabel(z)}, ${T('code')} ${z.code}`;
+  track('msg', id, S.pvSize);
   tg.tlink('https://t.me/' + S.cfg.manager + '?text=' + encodeURIComponent(text));
+}
+function shareProduct(id) {
+  const p = S.products.find(x => x.id === id); if (!p || !S.cfg.bot) return;
+  const url = 'https://t.me/' + S.cfg.bot + '?startapp=p' + id;
+  const text = tr(p, 'title') + ' — ' + price(p.price);
+  track('share', id);
+  tg.tlink('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text));
 }
 
 /* ---------- favorites ---------- */
@@ -834,8 +897,12 @@ document.addEventListener('click', async e => {
   if (act === 'fav') { e.stopPropagation(); return toggleFav(id); }
   if (act === 'open') { if (S.pv !== id) { /* open from wheel/home */ } return openProduct(id); }
   if (act === 'msg') return messageManager(id);
+  if (act === 'share') return shareProduct(id);
+  if (act === 'size') { S.pvSize = el.dataset.v; document.querySelectorAll('#szs .szb').forEach(b => { b.classList.remove('need'); b.classList.toggle('on', b.dataset.v === S.pvSize); }); tg.tap(); return; }
+  if (act === 'brand') { tg.tap(); S.fBrand = new Set([el.dataset.v]); S.fSize.clear(); S.pmin = ''; S.pmax = ''; S.sort = 'def'; S.tab = 'catalog'; S.cat = ''; S.q = ''; render(); scrollTo(0, 0); return; }
+  if (act === 'bn-up' || act === 'bn-down') return admCall('/api/admin/banners/' + id + '/move', 'PATCH', { dir: act === 'bn-up' ? -1 : 1 });
   if (act === 'tab') {
-    const t = el.dataset.tab; S.tab = t; S.q = '';
+    const t = el.dataset.tab; S.tab = t; S.q = ''; tg.tap(); S.fBrand.clear(); S.fSize.clear(); S.pmin = ''; S.pmax = ''; S.sort = 'def';
     if (t === 'catalog' || t === 'sale') { S.cat = ''; }
     render(); scrollTo(0, 0);
     if (t === 'wheel') { try { S.spin = (await api('/api/wheel/me')).spin; if (S.tab === 'wheel' && $('wpanel')) $('wpanel').innerHTML = wheelPanel(); } catch (x) {} }
@@ -843,7 +910,7 @@ document.addEventListener('click', async e => {
     return;
   }
   if (act === 'bn') { const t = el.dataset.t; if (!t) return; if (t === 'tiktok') return tg.link(S.cfg.tiktok);
-    S.tab = t; S.q = ''; render(); scrollTo(0, 0); if (t === 'wheel') { try { S.spin = (await api('/api/wheel/me')).spin; if ($('wpanel')) $('wpanel').innerHTML = wheelPanel(); } catch (x) {} } return; }
+    S.tab = t; S.q = ''; S.fBrand.clear(); S.fSize.clear(); S.pmin = ''; S.pmax = ''; S.sort = 'def'; render(); scrollTo(0, 0); if (t === 'wheel') { try { S.spin = (await api('/api/wheel/me')).spin; if ($('wpanel')) $('wpanel').innerHTML = wheelPanel(); } catch (x) {} } return; }
   if (act === 'cat') { S.cat = el.dataset.cat; $('app').innerHTML = viewCatalog('catalog'); return; }
   if (act === 'tiktok') return tg.link(S.cfg.tiktok);
   if (act === 'sheet') return showSheet(el.dataset.s);
@@ -914,8 +981,12 @@ $('lang').addEventListener('click', () => {
 
 (async function init() {
   try { await loadAll(); document.title = S.cfg.shop; }
-  catch (e) { $('app').innerHTML = '<div class="empty">Connection error</div>'; return; }
+  catch (e) { $('app').innerHTML = '<div class="empty">Connection error</div>'; hideSplash(); return; }
   render();
+  track('open');
+  const sp = WA && WA.initDataUnsafe && WA.initDataUnsafe.start_param, m = /^p(\d+)$/.exec(sp || '');
+  if (m && S.products.some(p => p.id === Number(m[1]))) openProduct(Number(m[1]));
+  hideSplash();
 })();
 </script>
 </body>

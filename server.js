@@ -8,6 +8,7 @@ const ADMIN_IDS = (process.env.ADMIN_IDS || '').split(',').map(s => s.trim()).fi
 const MANAGER = (process.env.MANAGER_USERNAME || '').replace('@', '').trim();
 const TIKTOK_DEFAULT = 'https://www.tiktok.com/@security_store1';
 const SHOP_NAME = process.env.SHOP_NAME || 'SecurityShop';
+let BOT_USERNAME = process.env.BOT_USERNAME || 'securityshop_nalichie_bot';
 const BASE_URL = (process.env.BASE_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
 const PORT = process.env.PORT || 3000;
 const HOOK = crypto.createHash('sha256').update(BOT_TOKEN).digest('hex').slice(0, 32);
@@ -73,6 +74,11 @@ async function initDb() {
       created_at timestamptz not null default now(), expires_at timestamptz not null
     );
     create index if not exists spins_user_idx on spins(user_id, created_at desc);
+    create table if not exists events (
+      id serial primary key, user_id bigint not null, user_name text not null default '',
+      kind text not null, product_id integer, created_at timestamptz not null default now()
+    );
+    create index if not exists events_kind_idx on events(kind, created_at desc);
   `);
   const b = await pool.query('select count(*)::int n from brands');
   if (!b.rows[0].n) {
@@ -280,7 +286,7 @@ app.get('/api/bootstrap', h(async (req, res) => {
   }
   const wp = Number(st.wheel_product) || 0;
   res.json({
-    config: { shop: SHOP_NAME, manager: MANAGER, tiktok: st.tiktok || TIKTOK_DEFAULT },
+    config: { shop: SHOP_NAME, manager: MANAGER, tiktok: st.tiktok || TIKTOK_DEFAULT, bot: BOT_USERNAME },
     isAdmin: isAdminUser(req.user),
     favorites,
     products,
@@ -331,6 +337,7 @@ app.post('/api/wheel/spin', requireUser, h(async (req, res) => {
     );
     await c.query('commit');
     res.json({ spin: spinOut(ins.rows[0]), prizeId: pick.id });
+    if (!adm) notifyAdmins(`🎡 ${name || 'Покупатель'} выиграл ${pick.kind === 'percent' ? '-' + pick.value + '%' : '-' + pick.value + ' ₽'} на «${pr.title_ru || pr.title_en}». Код: ${code}`);
   } catch (e) {
     await c.query('rollback').catch(() => {});
     throw e;
@@ -366,6 +373,67 @@ app.patch('/api/admin/products/:id/price', requireAdmin, h(async (req, res) => {
   const p = Math.max(0, parseInt((req.body || {}).price, 10) || 0);
   const o = Math.max(0, parseInt((req.body || {}).old_price, 10) || 0);
   await pool.query('update products set price=$1, old_price=$2 where id=$3', [p, o, Number(req.params.id)]);
+  res.json({ ok: true });
+}));
+
+// ---------- tracking, stats, notifications ----------
+function userName(u) {
+  return ([u.first_name, u.last_name].filter(Boolean).join(' ') + (u.username ? ' @' + u.username : '')).trim();
+}
+function notifyAdmins(text) {
+  if (!BOT_TOKEN) return;
+  for (const id of ADMIN_IDS) tg('sendMessage', { chat_id: id, text }).catch(() => {});
+}
+app.post('/api/track', requireUser, h(async (req, res) => {
+  const b = req.body || {};
+  const kind = ['open', 'view', 'msg', 'share'].includes(b.kind) ? b.kind : null;
+  if (!kind) return res.json({ ok: true });
+  const pid = Number(b.product_id) || null;
+  const u = req.user;
+  let dup = false;
+  if (kind === 'msg' && pid) {
+    const d = await pool.query(
+      "select 1 from events where user_id=$1 and kind='msg' and product_id=$2 and created_at > now() - interval '10 minutes' limit 1", [u.id, pid]);
+    dup = !!d.rowCount;
+  }
+  await pool.query('insert into events(user_id,user_name,kind,product_id) values($1,$2,$3,$4)', [u.id, userName(u), kind, pid]);
+  if (kind === 'msg' && pid && !dup && !isAdminUser(u)) {
+    const p = (await pool.query('select title_ru,title_en from products where id=$1', [pid])).rows[0];
+    const size = String(b.size || '').slice(0, 20);
+    if (p) notifyAdmins(`💬 ${userName(u) || 'Покупатель'} хочет написать менеджеру по товару «${p.title_ru || p.title_en}»${size ? ', размер ' + size : ''}`);
+  }
+  res.json({ ok: true });
+}));
+
+app.get('/api/admin/stats', requireAdmin, h(async (_req, res) => {
+  const ex = ADMIN_IDS.length ? ADMIN_IDS : ['0'];
+  const q = sql => pool.query(sql, [ex]);
+  const T = "coalesce(nullif(p.title_ru,''), p.title_en)";
+  const [u, tv, tm, tf, sp] = await Promise.all([
+    q(`select count(distinct user_id) filter (where created_at > now() - interval '24 hours')::int d,
+              count(distinct user_id) filter (where created_at > now() - interval '7 days')::int w,
+              count(distinct user_id)::int t, count(*)::int opens
+       from events where kind='open' and user_id <> all($1::bigint[])`),
+    q(`select p.id, ${T} title, count(*)::int n from events e join products p on p.id=e.product_id
+       where e.kind='view' and e.created_at > now() - interval '7 days' and e.user_id <> all($1::bigint[])
+       group by p.id order by n desc limit 5`),
+    q(`select p.id, ${T} title, count(*)::int n from events e join products p on p.id=e.product_id
+       where e.kind='msg' and e.created_at > now() - interval '7 days' and e.user_id <> all($1::bigint[])
+       group by p.id order by n desc limit 5`),
+    q(`select p.id, ${T} title, count(*)::int n from favorites f join products p on p.id=f.product_id
+       where f.user_id <> all($1::bigint[]) group by p.id order by n desc limit 5`),
+    q(`select count(*)::int total, (count(*) filter (where redeemed))::int red from spins where not test and user_id <> all($1::bigint[])`),
+  ]);
+  res.json({ users: u.rows[0], views: tv.rows, msgs: tm.rows, favs: tf.rows, spins: sp.rows[0] });
+}));
+
+app.patch('/api/admin/banners/:id/move', requireAdmin, h(async (req, res) => {
+  const id = Number(req.params.id), dir = Number((req.body || {}).dir) < 0 ? -1 : 1;
+  const ids = (await pool.query('select id from banners order by position, id')).rows.map(r => r.id);
+  const i = ids.indexOf(id), j = i + dir;
+  if (i < 0 || j < 0 || j >= ids.length) return res.json({ ok: true });
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  for (let k = 0; k < ids.length; k++) await pool.query('update banners set position=$1 where id=$2', [k, ids[k]]);
   res.json({ ok: true });
 }));
 
@@ -480,7 +548,9 @@ async function setupBot() {
   const b = await tg('setChatMenuButton', {
     menu_button: { type: 'web_app', text: 'Магазин', web_app: { url: BASE_URL } },
   });
-  console.log('webhook:', JSON.stringify(a), 'menu:', JSON.stringify(b));
+  const me = await tg('getMe', {}).catch(() => null);
+  if (me && me.result && me.result.username) BOT_USERNAME = me.result.username;
+  console.log('webhook:', JSON.stringify(a), 'menu:', JSON.stringify(b), 'bot:', BOT_USERNAME);
 }
 
 app.use((err, _req, res, _next) => {
