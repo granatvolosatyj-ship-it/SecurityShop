@@ -268,8 +268,9 @@ h1.row{display:flex;align-items:center;gap:10px}
 .zg{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;height:100%;scrollbar-width:none}
 .zg::-webkit-scrollbar{display:none}
 .zg.zoomed{overflow:hidden}
+.zg.zoomed .zs img{touch-action:none}
 .zs{flex:0 0 100%;scroll-snap-align:start;display:grid;place-items:center;height:100%;overflow:hidden}
-.zs img{max-width:100%;max-height:100%;object-fit:contain;touch-action:none;will-change:transform;-webkit-user-select:none;user-select:none}
+.zs img{max-width:100%;max-height:100%;object-fit:contain;touch-action:pan-x;will-change:transform;-webkit-user-select:none;user-select:none}
 .zclose{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:3;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:18px;padding:0}
 .zcnt{position:absolute;bottom:calc(18px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:#aaa;font-size:13px;z-index:3}
 .gal .slide img{cursor:zoom-in}
@@ -279,6 +280,7 @@ h1.row{display:flex;align-items:center;gap:10px}
 .cond b{color:#fff;font-weight:600}
 .badge.sale{position:relative}
 .card .badge.sale{position:absolute}
+
 </style>
 </head>
 <body class="anim">
@@ -488,7 +490,7 @@ function viewHome() {
 /* ---------- CATALOG / SALE ---------- */
 function filterBar() {
   const f = (k, label, on) => `<button class="fb ${on ? 'on' : ''}" data-act="sheet" data-s="${k}">${label}${on ? ' •' : ''}</button>`;
-  return `<div class="fbar">${f('brand', T('brand'), S.fBrand.size)}${f('size', T('size'), S.fSize.size)}${f('price', T('priceF'), S.pmin || S.pmax)}${f('sort', '⇅ ' + T('sort'), S.sort !== 'def')}</div>`;
+  return `<div class="fbar">${f('sort', '⇅ ' + T('sort'), S.sort !== 'def')}${f('brand', T('brand'), S.fBrand.size)}${f('size', T('size'), S.fSize.size)}${f('price', T('priceF'), S.pmin || S.pmax)}</div>`;
 }
 function viewCatalog(mode) {
   const sale = mode === 'sale';
@@ -530,7 +532,7 @@ function sheetHtml() {
     h = `<h3>${T('sort')}</h3>` + [['def', 's_def'], ['date', 's_date'], ['asc', 's_asc'], ['desc', 's_desc'], ['disc', 's_disc'], ['discAsc', 's_discAsc']]
       .map(([v, t]) => opt(S.sort === v, T(t), 'sh-sort', v)).join('');
   } else if (k === 'brand') {
-    const bs = [...new Set(S.products.map(p => p.brand).filter(Boolean))].sort();
+    const bs = [...new Set([...S.brands.map(b => b.name), ...S.products.map(p => p.brand)].filter(Boolean))].sort((a, b) => a.localeCompare(b));
     h = `<h3>${T('brand')}</h3>` + (bs.map(b => opt(S.fBrand.has(b), esc(b), 'sh-brand', b, 'ck')).join('') || `<div class="hint">—</div>`);
   } else if (k === 'size') {
     const ss = [...new Set(S.products.flatMap(sizesOf).map(x => x.toUpperCase()))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
