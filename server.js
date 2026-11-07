@@ -79,6 +79,13 @@ async function initDb() {
       kind text not null, product_id integer, created_at timestamptz not null default now()
     );
     create index if not exists events_kind_idx on events(kind, created_at desc);
+    alter table favorites add column if not exists price_at integer;
+    update favorites f set price_at = p.price from products p where f.product_id = p.id and f.price_at is null;
+    alter table products add column if not exists cond text not null default '';
+    create table if not exists bot_users (
+      user_id bigint primary key, name text not null default '', blocked boolean not null default false,
+      created_at timestamptz not null default now()
+    );
   `);
   const b = await pool.query('select count(*)::int n from brands');
   if (!b.rows[0].n) {
@@ -147,6 +154,7 @@ async function listProducts() {
     desc_en: r.desc_en,
     price: r.price,
     old_price: r.old_price,
+    cond: r.cond,
     brand: r.brand,
     created_at: r.created_at,
     category: r.category,
@@ -171,16 +179,17 @@ async function saveProduct(id, b) {
       !!b.sold,
       String(b.brand || '').trim(),
       Math.max(0, parseInt(b.old_price, 10) || 0),
+      ['new', 'excellent', 'good', 'fair'].includes(b.cond) ? b.cond : '',
     ];
     if (!f[0] && !f[1]) throw new Error('title required');
     if (id) {
       await c.query(
-        'update products set title_ru=$1,title_en=$2,desc_ru=$3,desc_en=$4,price=$5,category=$6,sizes=$7,sold=$8,brand=$9,old_price=$10 where id=$11',
+        'update products set title_ru=$1,title_en=$2,desc_ru=$3,desc_en=$4,price=$5,category=$6,sizes=$7,sold=$8,brand=$9,old_price=$10,cond=$11 where id=$12',
         [...f, id]
       );
     } else {
       const r = await c.query(
-        'insert into products(title_ru,title_en,desc_ru,desc_en,price,category,sizes,sold,brand,old_price) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id',
+        'insert into products(title_ru,title_en,desc_ru,desc_en,price,category,sizes,sold,brand,old_price,cond) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning id',
         f
       );
       id = r.rows[0].id;
@@ -278,10 +287,12 @@ app.get('/api/bootstrap', h(async (req, res) => {
     getSettings(),
   ]);
   let favorites = [];
+  let favPrices = {};
   let spin = null;
   if (req.user) {
-    const r = await pool.query('select product_id from favorites where user_id=$1', [req.user.id]);
+    const r = await pool.query('select product_id, price_at from favorites where user_id=$1', [req.user.id]);
     favorites = r.rows.map(x => x.product_id);
+    favPrices = Object.fromEntries(r.rows.map(x => [x.product_id, x.price_at]));
     spin = await lastSpin(req.user.id);
   }
   const wp = Number(st.wheel_product) || 0;
@@ -289,11 +300,12 @@ app.get('/api/bootstrap', h(async (req, res) => {
     config: { shop: SHOP_NAME, manager: MANAGER, tiktok: st.tiktok || TIKTOK_DEFAULT, bot: BOT_USERNAME },
     isAdmin: isAdminUser(req.user),
     favorites,
+    favPrices,
     products,
     brands: brands.rows,
     banners: banners.rows,
     prizes: prizes.rows,
-    home: { cover: Number(st.cover) || null, coverSale: Number(st.cover_sale) || null, coverWheel: Number(st.cover_wheel) || null, wheelProduct: products.some(p => p.id === wp) ? wp : null },
+    home: { saleMax: Number(st.sale_max) || 80, cover: Number(st.cover) || null, coverSale: Number(st.cover_sale) || null, coverWheel: Number(st.cover_wheel) || null, wheelProduct: products.some(p => p.id === wp) ? wp : null },
     spin,
   });
 }));
@@ -352,7 +364,7 @@ app.post('/api/favorites/:id', requireUser, h(async (req, res) => {
   const pid = Number(req.params.id);
   const del = await pool.query('delete from favorites where user_id=$1 and product_id=$2', [req.user.id, pid]);
   if (!del.rowCount) {
-    await pool.query('insert into favorites(user_id, product_id) values($1,$2) on conflict do nothing', [req.user.id, pid]);
+    await pool.query('insert into favorites(user_id, product_id, price_at) select $1, id, price from products where id=$2 on conflict do nothing', [req.user.id, pid]);
   }
   res.json({ ok: true, on: !del.rowCount });
 }));
@@ -397,6 +409,9 @@ app.post('/api/track', requireUser, h(async (req, res) => {
     dup = !!d.rowCount;
   }
   await pool.query('insert into events(user_id,user_name,kind,product_id) values($1,$2,$3,$4)', [u.id, userName(u), kind, pid]);
+  if (kind === 'open' && u.allows_write_to_pm) {
+    await pool.query('insert into bot_users(user_id,name) values($1,$2) on conflict (user_id) do nothing', [u.id, userName(u)]).catch(() => {});
+  }
   if (kind === 'msg' && pid && !dup && !isAdminUser(u)) {
     const p = (await pool.query('select title_ru,title_en from products where id=$1', [pid])).rows[0];
     const size = String(b.size || '').slice(0, 20);
@@ -437,10 +452,44 @@ app.patch('/api/admin/banners/:id/move', requireAdmin, h(async (req, res) => {
   res.json({ ok: true });
 }));
 
+let broadcasting = false;
+app.get('/api/admin/audience', requireAdmin, h(async (_req, res) => {
+  const r = await pool.query('select count(*)::int n from bot_users where not blocked');
+  res.json({ count: r.rows[0].n });
+}));
+app.post('/api/admin/broadcast', requireAdmin, h(async (req, res) => {
+  const b = req.body || {};
+  const text = String(b.text || '').trim().slice(0, 1000);
+  if (!text) return res.status(400).json({ error: 'text' });
+  const kb = { inline_keyboard: [[{ text: '🛍 Открыть магазин', web_app: { url: BASE_URL } }]] };
+  if (b.test) {
+    const r = await tg('sendMessage', { chat_id: req.user.id, text, reply_markup: kb });
+    return res.json({ ok: !!r.ok });
+  }
+  if (broadcasting) return res.status(409).json({ error: 'busy' });
+  const users = (await pool.query('select user_id from bot_users where not blocked')).rows.map(r => r.user_id);
+  broadcasting = true;
+  res.json({ queued: users.length });
+  (async () => {
+    let ok = 0, fail = 0;
+    for (const id of users) {
+      try {
+        const r = await tg('sendMessage', { chat_id: id, text, reply_markup: kb });
+        if (r.ok) ok++;
+        else { fail++; if (r.error_code === 403) await pool.query('update bot_users set blocked=true where user_id=$1', [id]); }
+      } catch (e) { fail++; }
+      await new Promise(r => setTimeout(r, 70));
+    }
+    broadcasting = false;
+    notifyAdmins(`📣 Рассылка завершена: доставлено ${ok}, не доставлено ${fail}`);
+  })();
+}));
+
 // ---------- admin: home, brands, banners, wheel ----------
 app.put('/api/admin/settings', requireAdmin, h(async (req, res) => {
   const b = req.body || {};
   if (typeof b.tiktok === 'string') await setSetting('tiktok', b.tiktok.trim());
+  if ('sale_max' in b) await setSetting('sale_max', String(Math.min(99, Math.max(1, parseInt(b.sale_max, 10) || 80))));
   if ('wheel_product' in b) await setSetting('wheel_product', String(Number(b.wheel_product) || ''));
   for (const k of ['cover', 'cover_sale', 'cover_wheel']) {
     if (b[k] === undefined) continue;
@@ -529,6 +578,15 @@ app.post('/tg/' + HOOK, async (req, res) => {
   res.sendStatus(200);
   try {
     const m = req.body && req.body.message;
+    if (m && m.from && m.chat && m.chat.type === 'private') {
+      await pool.query('insert into bot_users(user_id,name) values($1,$2) on conflict (user_id) do update set blocked=false', [m.from.id, userName(m.from)]).catch(() => {});
+    }
+    const mc = req.body && req.body.my_chat_member;
+    if (mc && mc.chat && mc.chat.type === 'private' && mc.new_chat_member) {
+      const st = mc.new_chat_member.status;
+      if (st === 'kicked') await pool.query('update bot_users set blocked=true where user_id=$1', [mc.chat.id]).catch(() => {});
+      else if (st === 'member') await pool.query('insert into bot_users(user_id,name) values($1,$2) on conflict (user_id) do update set blocked=false', [mc.chat.id, userName(mc.from || {})]).catch(() => {});
+    }
     if (m && typeof m.text === 'string' && m.text.startsWith('/start')) {
       await tg('sendMessage', {
         chat_id: m.chat.id,
@@ -544,7 +602,7 @@ app.post('/tg/' + HOOK, async (req, res) => {
 });
 
 async function setupBot() {
-  const a = await tg('setWebhook', { url: `${BASE_URL}/tg/${HOOK}`, allowed_updates: ['message'] });
+  const a = await tg('setWebhook', { url: `${BASE_URL}/tg/${HOOK}`, allowed_updates: ['message', 'my_chat_member'] });
   const b = await tg('setChatMenuButton', {
     menu_button: { type: 'web_app', text: 'Магазин', web_app: { url: BASE_URL } },
   });

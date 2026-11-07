@@ -263,6 +263,22 @@ h1.row{display:flex;align-items:center;gap:10px}
 .srow{display:flex;justify-content:space-between;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 12px;margin-bottom:6px;font-size:14px}
 .srow b{color:#ff6b6f;flex:none}
 .srow span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zbg{position:fixed;inset:0;background:#000;z-index:120;display:none}
+.zbg.show{display:block}
+.zg{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;height:100%;scrollbar-width:none}
+.zg::-webkit-scrollbar{display:none}
+.zg.zoomed{overflow:hidden}
+.zs{flex:0 0 100%;scroll-snap-align:start;display:grid;place-items:center;height:100%;overflow:hidden}
+.zs img{max-width:100%;max-height:100%;object-fit:contain;touch-action:none;will-change:transform;-webkit-user-select:none;user-select:none}
+.zclose{position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:3;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;font-size:18px;padding:0}
+.zcnt{position:absolute;bottom:calc(18px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:#aaa;font-size:13px;z-index:3}
+.gal .slide img{cursor:zoom-in}
+.card .badge.drop{top:auto;bottom:8px;left:8px;background:#1f7a46;box-shadow:none}
+.meta small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cond{margin-top:8px;color:var(--mut);font-size:14px}
+.cond b{color:#fff;font-weight:600}
+.badge.sale{position:relative}
+.card .badge.sale{position:absolute}
 </style>
 </head>
 <body class="anim">
@@ -272,6 +288,7 @@ h1.row{display:flex;align-items:center;gap:10px}
 <nav class="bar" id="nav"></nav>
 <div class="overlay" id="pv"></div>
 <div class="overlay" id="fm"></div>
+<div class="zbg" id="zv"></div>
 <div class="sbg" id="sbg" data-act="sheet-close"></div>
 <div class="sheet" id="sheet"></div>
 
@@ -304,7 +321,7 @@ const I = {
     spin:'Крутить', spinTest:'Крутить (тест)', next:'Следующая попытка через', won:'Ваш приз', forItem:'На товар',
     showSeller:'Покажите этот экран продавцу', left:'Действует ещё', used:'Приз уже использован', expired:'Срок приза истёк',
     code:'Код', priceWith:'Цена с призом', openItem:'Открыть товар', wsoon:'Розыгрыш скоро откроется', cool:'Вы уже крутили сегодня',
-    found:'Найдено', stock:['товар','товара','товаров'], inStock:'в наличии', tapWheel:'Крутить колесо', pickSize:'Выберите размер', share:'Поделиться', wheelShort:'Раз в 24 часа', back:'Назад', toCatalog:'Перейти в каталог' },
+    found:'Найдено', stock:['товар','товара','товаров'], inStock:'в наличии', tapWheel:'Крутить колесо', cheaper:'Подешевело', condLbl:'Состояние', pickSize:'Выберите размер', share:'Поделиться', wheelShort:'Раз в 24 часа', back:'Назад', toCatalog:'Перейти в каталог' },
   en: { home:'Home', catalog:'Catalog', fav:'Favorites', admin:'Admin', search:'Search', all:'All',
     sizes:'Sizes', desc:'Description', msg:'Message the manager', sold:'Sold',
     emptyAll:'No items yet', emptyFav:'Nothing here yet. Tap the heart to save items.', nothing:'Nothing found',
@@ -318,7 +335,7 @@ const I = {
     spin:'Spin', spinTest:'Spin (test)', next:'Next try in', won:'Your prize', forItem:'For item',
     showSeller:'Show this screen to the seller', left:'Valid for', used:'Prize already used', expired:'Prize expired',
     code:'Code', priceWith:'Price with prize', openItem:'Open item', wsoon:'The giveaway opens soon', cool:"You've already spun today",
-    found:'Found', stock:['item','items','items'], inStock:'in stock', tapWheel:'Spin the wheel', pickSize:'Choose a size', share:'Share', wheelShort:'Once every 24h', back:'Back', toCatalog:'Go to catalog' }
+    found:'Found', stock:['item','items','items'], inStock:'in stock', tapWheel:'Spin the wheel', cheaper:'Price drop', condLbl:'Condition', pickSize:'Choose a size', share:'Share', wheelShort:'Once every 24h', back:'Back', toCatalog:'Go to catalog' }
 };
 const ICON = {
   home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
@@ -329,9 +346,9 @@ const ICON = {
 };
 
 const S = { lang: null, products: [], favs: new Set(), isAdmin: false, cfg: { shop:'SecurityShop', manager:'', tiktok:'' },
-  brands: [], banners: [], prizes: [], home: { cover: null, coverSale: null, coverWheel: null, wheelProduct: null }, spin: null,
+  brands: [], banners: [], prizes: [], home: { saleMax: 80, cover: null, coverSale: null, coverWheel: null, wheelProduct: null }, spin: null,
   tab: 'home', q: '', cat: '', fBrand: new Set(), fSize: new Set(), pmin: '', pmax: '', sort: 'def', sheet: null,
-  at: 'items', aStats: null, pvSize: '', aPrizes: [], aSpins: [], pv: null, form: null, rot: 0, spinning: false };
+  at: 'items', aStats: null, aAud: 0, favPrice: {}, zoom: null, pvSize: '', aPrizes: [], aSpins: [], pv: null, form: null, rot: 0, spinning: false };
 try { S.lang = localStorage.getItem('lang'); } catch(e){}
 if (!S.lang) {
   const lc = (tg.user && tg.user.language_code) || navigator.language || 'ru';
@@ -349,6 +366,8 @@ const plural = n => { const w = I[S.lang].stock; if (S.lang === 'en') return n =
 const prizeLabel = z => z.prize_kind === 'percent' || z.kind === 'percent' ? '-' + (z.prize_value || z.value) + '%' : '-' + (z.prize_value || z.value) + ' ₽';
 const withPrize = (p, z) => Math.max(0, z.prize_kind === 'percent' ? Math.round(p.price * (1 - z.prize_value / 100)) : p.price - z.prize_value);
 const dt = s => new Date(s).toLocaleString(S.lang === 'ru' ? 'ru-RU' : 'en-GB', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+const COND = { new: ['Новое', 'New'], excellent: ['Отличное', 'Excellent'], good: ['Хорошее', 'Good'], fair: ['Удовлетворительное', 'Fair'] };
+const condL = c => COND[c] ? COND[c][S.lang === 'ru' ? 0 : 1] : '';
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const hms = ms => { ms = Math.max(0, ms); const s = Math.floor(ms / 1000);
   return [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60].map(x => String(x).padStart(2, '0')).join(':'); };
@@ -376,7 +395,7 @@ function track(kind, pid, size) {
 async function loadAll() {
   const d = await api('/api/bootstrap');
   S.cfg = d.config; S.isAdmin = d.isAdmin; S.products = d.products; S.favs = new Set(d.favorites);
-  S.brands = d.brands; S.banners = d.banners; S.prizes = d.prizes; S.home = d.home; S.spin = d.spin;
+  S.favPrice = d.favPrices || {}; S.brands = d.brands; S.banners = d.banners; S.prizes = d.prizes; S.home = d.home; S.spin = d.spin;
 }
 
 /* ---------- lists / filters ---------- */
@@ -403,11 +422,12 @@ function list(mode) {
 function card(p, i) {
   const on = S.favs.has(p.id), d = disc(p);
   const img = p.photos[0] ? `<img loading="lazy" src="/img/${p.photos[0]}">` : '<div class="noimg"></div>';
-  const badge = p.sold ? `<span class="badge">${T('sold')}</span>` : d ? `<span class="badge sale">-${d}%</span>` : '';
+  const badge = (p.sold ? `<span class="badge">${T('sold')}</span>` : d ? `<span class="badge sale">-${d}%</span>` : '') +
+    (!p.sold && on && S.favPrice[p.id] > p.price ? `<span class="badge drop">↓ ${T('cheaper')}</span>` : '');
   return `<div class="card ${p.sold ? 'sold' : ''}" style="--i:${Math.min(i || 0, 8)}" data-act="open" data-id="${p.id}">
     <div class="ph">${img}${badge}
     <button class="fav ${on ? 'on' : ''}" data-act="fav" data-id="${p.id}">${ICON.fav}</button></div>
-    <div class="meta"><div class="mi"><small>${esc(p.brand || p.category)}</small><b>${esc(tr(p, 'title'))}</b>
+    <div class="meta"><div class="mi"><small>${esc(p.brand || p.category)}${condL(p.cond) ? ' · ' + esc(condL(p.cond)) : ''}</small><b>${esc(tr(p, 'title'))}</b>
     <span class="price">${price(p.price)}</span>${d ? `<span class="old">${price(p.old_price)}</span>` : ''}</div><div class="mgo">→</div></div></div>`;
 }
 function gridHtml(l, emptyKey) {
@@ -456,7 +476,7 @@ function viewHome() {
     `<button class="tile big" data-act="tab" data-tab="catalog">${coverHtml()}<div class="tx"><b>${T('catalog')}</b><span>${n} ${plural(n)} ${T('inStock')}</span></div><div class="ar">→</div></button>
     <div class="two">
       <button class="tile sq sale ${S.home.coverSale ? 'hasimg' : ''}" data-act="tab" data-tab="sale">${S.home.coverSale ? `<img class="tbg" src="/asset/${S.home.coverSale}">` : ''}
-        <div class="tx"><b>${T('sale')}</b><span>${md ? cap(T('upto')) + ' ' + md + '%' : T('soon')}</span></div><div class="ar">→</div></button>
+        <div class="tx"><b>${T('sale')}</b><span>${cap(T('upto'))} ${S.home.saleMax || 80}%</span></div><div class="ar">→</div></button>
       <button class="tile sq whl ${S.home.coverWheel ? 'hasimg' : ''}" data-act="tab" data-tab="wheel">${S.home.coverWheel ? `<img class="tbg" src="/asset/${S.home.coverWheel}">` : ''}
         <div class="tx"><b>${T('wheel')}</b><span>${T('wheelShort')}</span></div><div class="ar">→</div></button>
     </div>` + mq +
@@ -614,7 +634,7 @@ function covBlock(k, title, id, none) {
     ${id ? `<button class="sm" style="margin-top:8px" data-act="cover-del" data-k="${k}">Убрать фото</button>` : ''}`;
 }
 function viewAdmin() {
-  const tabs = [['items', 'Товары'], ['home', 'Главная'], ['wheel', 'Колесо'], ['stats', 'Статистика']];
+  const tabs = [['items', 'Товары'], ['home', 'Главная'], ['wheel', 'Колесо'], ['stats', 'Статистика'], ['bc', 'Рассылка']];
   let h = `<h1>${T('admin')}</h1><div class="chips adm">${tabs.map(([k, t]) => `<button class="chip ${S.at === k ? 'on' : ''}" data-act="atab" data-at="${k}">${t}</button>`).join('')}</div>`;
   if (S.at === 'items') {
     h += `<button class="btn full" data-act="new">+ Добавить товар</button>` + S.products.map(p => `<div class="arow">${p.photos[0] ? `<img src="/img/${p.photos[0]}">` : '<div class="t"></div>'}
@@ -633,7 +653,14 @@ function viewAdmin() {
       `<div class="sub2">Бренды (бегущая строка)</div>
       <div class="inl"><input id="nb" type="text" placeholder="Название бренда"><button data-act="brand-add">+</button></div>` +
       S.brands.map(b => `<div class="wrow"><div class="r2"><b>${esc(b.name)}</b><button class="sm" data-act="brand-del" data-id="${b.id}">Удалить</button></div></div>`).join('') +
-      `<div class="sub2">Ссылка TikTok</div><div class="inl"><input id="tk" type="text" value="${esc(S.cfg.tiktok)}"><button data-act="tk-save">OK</button></div>`;
+      `<div class="sub2">Надпись на плитке «Скидки»: до … %</div><div class="inl"><input id="smax" type="number" inputmode="numeric" value="${S.home.saleMax || 80}"><button data-act="smax-save">OK</button></div>
+      <div class="sub2">Ссылка TikTok</div><div class="inl"><input id="tk" type="text" value="${esc(S.cfg.tiktok)}"><button data-act="tk-save">OK</button></div>`;
+  } else if (S.at === 'bc') {
+    h += `<div class="sub2">Рассылка подписчикам бота</div>
+      <div class="hint" style="font-size:14px;line-height:1.5">Получат те, кто нажимал «Старт» у бота или разрешил писать ему: <b>${S.aAud}</b> чел. К сообщению автоматически добавится кнопка «Открыть магазин». Не рассылайте слишком часто: Telegram не любит спам.</div>
+      <textarea id="bc" class="sel" style="min-height:130px;margin-top:10px" placeholder="Текст сообщения, например: Новое поступление! Скидки до 50%"></textarea>
+      <button class="btn full" data-act="bc-test" style="margin-top:12px;background:#1a1a1d;border:1px solid var(--line)">Отправить тест мне</button>
+      <button class="btn full" data-act="bc-send">Отправить всем</button>`;
   } else if (S.at === 'stats') {
     const s = S.aStats;
     if (!s) h += '<div class="hint">Загрузка…</div>';
@@ -668,6 +695,7 @@ function viewAdmin() {
   return h;
 }
 async function adminTabLoad() {
+  if (S.at === 'bc') { try { S.aAud = (await api('/api/admin/audience')).count; } catch (e) {} }
   if (S.at === 'stats') { try { S.aStats = await api('/api/admin/stats'); } catch (e) {} }
   if (S.at === 'wheel') { try { S.aPrizes = await api('/api/admin/prizes'); S.aSpins = await api('/api/admin/spins'); } catch (e) {} }
 }
@@ -704,12 +732,13 @@ function renderProduct() {
   const p = S.products.find(x => x.id === S.pv);
   if (!p) { closeTop(); return; }
   const on = S.favs.has(p.id), d = disc(p);
-  const slides = p.photos.length ? p.photos.map(id => `<div class="slide"><img src="/img/${id}"></div>`).join('') : '<div class="slide"><div class="noimg"></div></div>';
+  const slides = p.photos.length ? p.photos.map((id, i) => `<div class="slide"><img src="/img/${id}" data-act="zoom" data-i="${i}"></div>`).join('') : '<div class="slide"><div class="noimg"></div></div>';
   const dots = p.photos.length > 1 ? `<div class="dots">${p.photos.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : '';
   const sz = sizesOf(p), ds = tr(p, 'desc');
   $('pv').innerHTML = `<button class="pback" data-act="pv-close">←</button><div class="gal" id="gal">${slides}</div>${dots}
     <div class="pbody"><small>${esc(p.brand || p.category)}</small><h2>${esc(tr(p, 'title'))}</h2>
-    <span class="price">${price(p.price)}</span>${d ? `<span class="old" style="font-size:16px">${price(p.old_price)}</span> <span class="badge sale" style="position:static;display:inline-block;margin-left:6px">-${d}%</span>` : ''}
+    <span class="price">${price(p.price)}</span>${d ? `<span class="old" style="font-size:16px">${price(p.old_price)}</span> <span class="badge sale" style="position:relative;display:inline-block;margin-left:6px">-${d}%</span>` : ''}
+    ${condL(p.cond) ? `<div class="cond">${T('condLbl')}: <b>${esc(condL(p.cond))}</b></div>` : ''}
     ${p.sold ? `<div style="margin-top:8px;color:var(--red);font-weight:700">${T('sold')}</div>` : ''}
     ${sz.length ? `<h3>${T('sizes')}</h3><div class="sz" id="szs">${sz.map(s => `<button class="szb ${S.pvSize === s ? 'on' : ''}" data-act="size" data-v="${esc(s)}">${esc(s)}</button>`).join('')}</div>` : ''}
     ${ds ? `<h3>${T('desc')}</h3><p>${esc(ds)}</p>` : ''}</div>
@@ -722,6 +751,39 @@ function renderProduct() {
     document.querySelectorAll('#pv .dots i').forEach((el, k) => el.classList.toggle('on', k === i));
   }, { passive: true });
 }
+const Z = { scale: 1, x: 0, y: 0, img: null, t: 0 };
+function zImg() { const g = $('zg'); return g ? (g.children[Math.round(g.scrollLeft / g.clientWidth)] || {}).firstChild : null; }
+function zApply() { if (Z.img) Z.img.style.transform = `translate(${Z.x}px,${Z.y}px) scale(${Z.scale})`; const g = $('zg'); if (g) g.classList.toggle('zoomed', Z.scale > 1.02); }
+function zReset() { if (Z.img) Z.img.style.transform = ''; Z.scale = 1; Z.x = 0; Z.y = 0; Z.img = null; const g = $('zg'); if (g) g.classList.remove('zoomed'); }
+function openZoom(i) {
+  const p = S.products.find(x => x.id === S.pv); if (!p || !p.photos.length) return;
+  S.zoom = i; zReset();
+  $('zv').innerHTML = `<button class="zclose" data-act="zoom-close">✕</button><div class="zg" id="zg">${p.photos.map(id => `<div class="zs"><img src="/img/${id}" draggable="false"></div>`).join('')}</div>${p.photos.length > 1 ? `<div class="zcnt" id="zcnt">${i + 1} / ${p.photos.length}</div>` : ''}`;
+  $('zv').classList.add('show'); const g = $('zg'); g.scrollLeft = i * g.clientWidth;
+  g.addEventListener('scroll', () => { zReset(); const c = $('zcnt'); if (c) c.textContent = (Math.round(g.scrollLeft / g.clientWidth) + 1) + ' / ' + p.photos.length; }, { passive: true });
+  updateBack();
+}
+function closeZoom() { S.zoom = null; zReset(); $('zv').classList.remove('show'); $('zv').innerHTML = ''; updateBack(); }
+(function zoomTouch() {
+  const el = $('zv'); let mode = null, d0 = 0, s0 = 1, sx = 0, sy = 0, ox = 0, oy = 0;
+  const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  const clampPan = () => { const im = Z.img; if (!im) return; const mx = (im.clientWidth * Z.scale - innerWidth) / 2, my = (im.clientHeight * Z.scale - innerHeight) / 2;
+    Z.x = Math.max(-Math.max(0, mx), Math.min(Math.max(0, mx), Z.x)); Z.y = Math.max(-Math.max(0, my), Math.min(Math.max(0, my), Z.y)); };
+  el.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) { Z.img = zImg(); mode = 'pinch'; d0 = dist(e.touches); s0 = Z.scale; e.preventDefault(); }
+    else if (e.touches.length === 1) {
+      const now = Date.now();
+      if (now - Z.t < 300 && e.target.tagName === 'IMG') { Z.img = zImg(); Z.scale = Z.scale > 1.02 ? 1 : 2.5; Z.x = 0; Z.y = 0; if (Z.img) Z.img.style.transition = 'transform .2s'; zApply(); setTimeout(() => { if (Z.img) Z.img.style.transition = ''; }, 220); e.preventDefault(); }
+      Z.t = now;
+      if (Z.scale > 1.02) { Z.img = zImg(); mode = 'pan'; sx = e.touches[0].clientX; sy = e.touches[0].clientY; ox = Z.x; oy = Z.y; }
+    }
+  }, { passive: false });
+  el.addEventListener('touchmove', e => {
+    if (mode === 'pinch' && e.touches.length === 2) { Z.scale = Math.max(1, Math.min(4, s0 * dist(e.touches) / d0)); clampPan(); zApply(); e.preventDefault(); }
+    else if (mode === 'pan' && e.touches.length === 1) { Z.x = ox + e.touches[0].clientX - sx; Z.y = oy + e.touches[0].clientY - sy; clampPan(); zApply(); e.preventDefault(); }
+  }, { passive: false });
+  el.addEventListener('touchend', () => { if (Z.scale < 1.05) { Z.scale = 1; Z.x = 0; Z.y = 0; zApply(); } mode = null; });
+})();
 function messageManager(id) {
   const p = S.products.find(x => x.id === id); if (!p) return;
   if (!S.cfg.manager) return tg.alert(T('noManager'));
@@ -748,6 +810,7 @@ async function toggleFav(id) {
   tg.tap();
   const on = !S.favs.has(id);
   on ? S.favs.add(id) : S.favs.delete(id);
+  if (on) { const pp = S.products.find(x => x.id === id); if (pp) S.favPrice[id] = pp.price; }
   document.querySelectorAll(`[data-act="fav"][data-id="${id}"]`).forEach(b => b.classList.toggle('on', on));
   if (S.tab === 'fav') { const y = scrollY; $('app').innerHTML = viewFav(); scrollTo(0, y); }
   try { await api('/api/favorites/' + id, { method: 'POST' }); } catch (e) {
@@ -758,9 +821,9 @@ async function toggleFav(id) {
 
 /* ---------- admin forms ---------- */
 function newForm(p) {
-  S.form = p ? { type: 'item', id: p.id, title_ru: p.title_ru, title_en: p.title_en, desc_ru: p.desc_ru, desc_en: p.desc_en, price: p.price, old_price: p.old_price || '',
+  S.form = p ? { type: 'item', id: p.id, title_ru: p.title_ru, title_en: p.title_en, desc_ru: p.desc_ru, desc_en: p.desc_en, price: p.price, old_price: p.old_price || '', cond: p.cond || '',
       brand: p.brand, category: p.category, sizes: p.sizes, sold: p.sold, photos: p.photos.map(id => ({ id, url: '/img/' + id })) }
-    : { type: 'item', id: null, title_ru: '', title_en: '', desc_ru: '', desc_en: '', price: '', old_price: '', brand: '', category: '', sizes: '', sold: false, photos: [] };
+    : { type: 'item', id: null, title_ru: '', title_en: '', desc_ru: '', desc_en: '', price: '', old_price: '', cond: '', brand: '', category: '', sizes: '', sold: false, photos: [] };
   openForm();
 }
 function newBanner(b) {
@@ -778,7 +841,7 @@ function readForm() {
     ['title_ru', 'title_en', 'text_ru', 'text_en'].forEach(k => { const v = g('b_' + k); if (v !== null) F[k] = v; });
     const t = g('b_target'); if (t !== null) F.target = t; return;
   }
-  const m = { title_ru: 'f_tru', title_en: 'f_ten', desc_ru: 'f_dru', desc_en: 'f_den', price: 'f_price', old_price: 'f_old', category: 'f_cat', sizes: 'f_sz', brand: 'f_brand' };
+  const m = { title_ru: 'f_tru', title_en: 'f_ten', desc_ru: 'f_dru', desc_en: 'f_den', price: 'f_price', old_price: 'f_old', category: 'f_cat', sizes: 'f_sz', brand: 'f_brand', cond: 'f_cond' };
   for (const k in m) { const v = g(m[k]); if (v !== null) F[k] = v; }
 }
 function renderForm() {
@@ -793,6 +856,7 @@ function renderForm() {
     <label>Название (RU)</label><input id="f_tru" type="text" value="${esc(F.title_ru)}">
     <label>Название (EN, необязательно)</label><input id="f_ten" type="text" value="${esc(F.title_en)}">
     <label>Бренд</label><select id="f_brand" class="sel"><option value="">— без бренда —</option>${brands.map(b => `<option ${b === F.brand ? 'selected' : ''}>${esc(b)}</option>`).join('')}</select>
+    <label>Состояние</label><select id="f_cond" class="sel"><option value="">— не указано —</option>${Object.entries(COND).map(([k, v]) => `<option value="${k}" ${k === F.cond ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
     <label>Цена, ₽ (текущая)</label><input id="f_price" type="number" inputmode="numeric" value="${esc(F.price)}">
     <label>Старая цена, ₽ (если скидка)</label><input id="f_old" type="number" inputmode="numeric" value="${esc(F.old_price)}">
     <div class="hint">Например: старая 10000, цена 9000 — покажется «-10%». Без скидки оставьте пустым.</div>
@@ -867,7 +931,7 @@ async function saveForm() {
   try {
     await api(F.id ? '/api/admin/products/' + F.id : '/api/admin/products', {
       method: F.id ? 'PUT' : 'POST',
-      body: { title_ru: F.title_ru, title_en: F.title_en, desc_ru: F.desc_ru, desc_en: F.desc_en, price: F.price, old_price: F.old_price, brand: F.brand,
+      body: { title_ru: F.title_ru, title_en: F.title_en, desc_ru: F.desc_ru, desc_en: F.desc_en, price: F.price, old_price: F.old_price, cond: F.cond, brand: F.brand,
         category: F.category, sizes: F.sizes, sold: F.sold, photos: F.photos.map(p => p.id ? { id: p.id } : { data: p.data }) }
     });
     S.form = null; $('fm').classList.remove('show'); updateBack(); await reloadAdmin();
@@ -876,11 +940,12 @@ async function saveForm() {
 
 /* ---------- navigation ---------- */
 function updateBack() {
-  const open = !!(S.pv || S.form);
+  const open = !!(S.pv || S.form || S.zoom !== null);
   try { open ? WA.BackButton.show() : WA.BackButton.hide(); } catch (e) {}
 }
 function closeTop() {
-  if (S.sheet) hideSheet();
+  if (S.zoom !== null) closeZoom();
+  else if (S.sheet) hideSheet();
   else if (S.form) { S.form = null; $('fm').classList.remove('show'); }
   else if (S.pv) { S.pv = null; $('pv').classList.remove('show'); }
   updateBack();
@@ -898,8 +963,20 @@ document.addEventListener('click', async e => {
   if (act === 'open') { if (S.pv !== id) { /* open from wheel/home */ } return openProduct(id); }
   if (act === 'msg') return messageManager(id);
   if (act === 'share') return shareProduct(id);
+  if (act === 'zoom') return openZoom(Number(el.dataset.i));
+  if (act === 'zoom-close') return closeZoom();
   if (act === 'size') { S.pvSize = el.dataset.v; document.querySelectorAll('#szs .szb').forEach(b => { b.classList.remove('need'); b.classList.toggle('on', b.dataset.v === S.pvSize); }); tg.tap(); return; }
   if (act === 'brand') { tg.tap(); S.fBrand = new Set([el.dataset.v]); S.fSize.clear(); S.pmin = ''; S.pmax = ''; S.sort = 'def'; S.tab = 'catalog'; S.cat = ''; S.q = ''; render(); scrollTo(0, 0); return; }
+  if (act === 'smax-save') return admCall('/api/admin/settings', 'PUT', { sale_max: $('smax').value }, () => tg.alert('Сохранено'));
+  if (act === 'bc-test' || act === 'bc-send') {
+    const text = ($('bc').value || '').trim(); if (!text) return tg.alert('Введите текст сообщения');
+    if (act === 'bc-test') { try { await api('/api/admin/broadcast', { method: 'POST', body: { text, test: true } }); tg.alert('Тест отправлен вам в Telegram'); } catch (er) { tg.alert(T('err')); } return; }
+    return tg.confirm('Отправить сообщение всем (' + S.aAud + ' чел.)?', async ok => {
+      if (!ok) return;
+      try { const r = await api('/api/admin/broadcast', { method: 'POST', body: { text } }); tg.alert('Рассылка запущена (' + r.queued + ' чел.). Когда закончится, придёт отчёт в Telegram.'); }
+      catch (er) { tg.alert(er.status === 409 ? 'Предыдущая рассылка ещё идёт' : T('err')); }
+    });
+  }
   if (act === 'bn-up' || act === 'bn-down') return admCall('/api/admin/banners/' + id + '/move', 'PATCH', { dir: act === 'bn-up' ? -1 : 1 });
   if (act === 'tab') {
     const t = el.dataset.tab; S.tab = t; S.q = ''; tg.tap(); S.fBrand.clear(); S.fSize.clear(); S.pmin = ''; S.pmax = ''; S.sort = 'def';
