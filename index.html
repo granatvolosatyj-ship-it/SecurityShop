@@ -222,6 +222,23 @@ h1.row{display:flex;align-items:center;gap:10px}
 .mqt i{display:none}
 .mqt span{font-size:15px;font-weight:600;letter-spacing:.1em;color:#e9e9ee;margin:0 12px}
 .mq{padding:13px 0;border-color:#1f1f23}
+.bs.plain:after{display:none}
+.bs.plain .go{background:rgba(0,0,0,.55)}
+.grid{gap:10px}
+.card{border-radius:20px}
+.ph{aspect-ratio:1/1.1}
+.ph:after{height:25%}
+.meta{display:flex;align-items:flex-end;gap:8px;padding:0 12px 12px}
+.meta .mi{flex:1;min-width:0}
+.meta small{font-size:10px;min-height:12px}
+.meta b{font-size:14px;font-weight:600;margin:2px 0 3px}
+.card .price{font-size:15px}
+.card .old{font-size:12px;margin-left:5px}
+.mgo{flex:none;width:30px;height:30px;border-radius:50%;background:#1b1b1e;display:grid;place-items:center;font-size:14px;color:#fff}
+.fav{width:32px;height:32px;top:8px;right:8px}
+.fav svg{width:16px;height:16px}
+.card .badge{top:8px;left:8px;font-size:11px;padding:4px 9px;border-radius:9px}
+.card .old{display:block;margin:1px 0 0;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -354,8 +371,8 @@ function card(p) {
   return `<div class="card ${p.sold ? 'sold' : ''}" data-act="open" data-id="${p.id}">
     <div class="ph">${img}${badge}
     <button class="fav ${on ? 'on' : ''}" data-act="fav" data-id="${p.id}">${ICON.fav}</button></div>
-    <div class="meta"><small>${esc(p.brand || p.category)}</small><b>${esc(tr(p, 'title'))}</b>
-    <span class="price">${price(p.price)}</span>${d ? `<span class="old">${price(p.old_price)}</span>` : ''}</div></div>`;
+    <div class="meta"><div class="mi"><small>${esc(p.brand || p.category)}</small><b>${esc(tr(p, 'title'))}</b>
+    <span class="price">${price(p.price)}</span>${d ? `<span class="old">${price(p.old_price)}</span>` : ''}</div><div class="mgo">→</div></div></div>`;
 }
 function gridHtml(l, emptyKey) {
   if (!l.length) return `<div class="empty"><div class="circle">${ICON.search}</div>${T(emptyKey || 'nothing')}</div>`;
@@ -377,7 +394,7 @@ function bannerList() {
 }
 function bannersHtml() {
   const b = bannerList();
-  return `<div class="bn" id="bn">${b.map(x => `<div class="bs" data-act="bn" data-t="${x.target}">
+  return `<div class="bn" id="bn">${b.map(x => `<div class="bs ${!tr(x, 'title') && !tr(x, 'text') ? 'plain' : ''}" data-act="bn" data-t="${x.target}">
     ${x.asset_id ? `<img src="/asset/${x.asset_id}">` : ''}
     <div class="bt"><b>${esc(tr(x, 'title'))}</b>${tr(x, 'text') ? `<span>${esc(tr(x, 'text'))}</span>` : ''}</div>
     ${x.target ? '<div class="go">→</div>' : ''}</div>`).join('')}</div>
@@ -568,7 +585,8 @@ function viewAdmin() {
       <div class="ai"><b>${esc(tr(p, 'title'))}</b><span>${price(p.price)}${disc(p) ? ' · -' + disc(p) + '%' : ''}${p.brand ? ' · ' + esc(p.brand) : ''}${p.sold ? ' · продано' : ''}</span></div>
       <div class="ab"><button data-act="disc" data-id="${p.id}" title="Скидка">%</button><button data-act="edit" data-id="${p.id}">✎</button><button data-act="toggle" data-id="${p.id}" title="Продан / вернуть">${p.sold ? '↩' : '✓'}</button><button data-act="del" data-id="${p.id}">✕</button></div></div>`).join('');
   } else if (S.at === 'home') {
-    h += `<div class="sub2">Баннеры (карусель сверху)</div><button class="btn full" data-act="bn-new">+ Добавить баннер</button>` +
+    h += `<div class="sub2">Баннеры (карусель сверху)</div><label class="btn full" style="display:block;text-align:center;position:relative;margin-bottom:8px">+ Добавить баннер с фото<input type="file" accept="image/*" data-ch="bnphoto" style="position:absolute;inset:0;opacity:0;width:100%;height:100%"></label>
+      <button class="sm" data-act="bn-new">Баннер с текстом и ссылкой</button><div class="hint">Выберите фото, и баннер появится сразу. Заголовок, текст и ссылку можно добавить кнопкой ✎.</div>` +
       S.banners.map(b => `<div class="arow">${b.asset_id ? `<img src="/asset/${b.asset_id}">` : '<div class="t"></div>'}
         <div class="ai"><b>${esc(b.title_ru || b.title_en || '(без названия)')}</b><span>${esc((targets.find(t => t[0] === b.target) || [])[1] || '')}</span></div>
         <div class="ab"><button data-act="bn-edit" data-id="${b.id}">✎</button><button data-act="bn-del" data-id="${b.id}">✕</button></div></div>`).join('') +
@@ -868,6 +886,10 @@ document.addEventListener('click', async e => {
 document.addEventListener('change', async e => {
   const k = e.target.dataset && e.target.dataset.ch; if (!k) return;
   if (k === 'wprod') return admCall('/api/admin/settings', 'PUT', { wheel_product: e.target.value });
+  if (k === 'bnphoto' && e.target.files[0]) {
+    try { const data = await compress(e.target.files[0], 1600); await admCall('/api/admin/banners', 'POST', { image: data, target: 'catalog' }); } catch (er) { tg.alert(T('err')); }
+    return;
+  }
   if (k.startsWith('cover:') && e.target.files[0]) {
     try { const data = await compress(e.target.files[0], 1600); await admCall('/api/admin/settings', 'PUT', { [k.slice(6)]: data }); } catch (er) { tg.alert(T('err')); }
   }
