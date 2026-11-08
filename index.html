@@ -281,11 +281,33 @@ h1.row{display:flex;align-items:center;gap:10px}
 .badge.sale{position:relative}
 .card .badge.sale{position:absolute}
 
+
+.hr{display:flex;gap:8px}
+html.light{filter:invert(1) hue-rotate(180deg);background:#fff}
+html.light body{background:#000}
+html.light img,html.light .tbg,html.light .zv,html.light video{filter:invert(1) hue-rotate(180deg)}
+
+.card{transition:transform .15s ease;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.card:active{transform:scale(.97)}
+.card .ph img{transition:transform .35s ease}
+.card:active .ph img{transform:scale(1.06)}
+nav.bar{background:linear-gradient(180deg,rgba(27,12,14,.55),rgba(10,10,10,.55))!important;backdrop-filter:blur(28px) saturate(1.5)!important;-webkit-backdrop-filter:blur(28px) saturate(1.5)!important}
+.zcap{position:absolute;left:0;right:0;bottom:calc(46px + env(safe-area-inset-bottom));text-align:center;color:#fff;font-weight:700;font-size:16px;z-index:3;padding:0 20px;text-shadow:0 1px 6px #000}
+.inv{border:1px solid #2a2a2e;border-radius:22px;padding:16px;margin:18px 0;background:radial-gradient(circle at 100% 0,#3a0d12,#0b0b0c 70%)}
+.inv b{font-size:18px;display:block}
+.inv p{margin:6px 0 12px;color:#c9c9cf;font-size:13px;line-height:1.4}
+.inv .cp{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;margin-top:8px;border:1px dashed var(--red);border-radius:12px;font-size:13px}
+.inv .cp b{font-size:14px;display:inline;color:var(--red);letter-spacing:.06em}
+.bars{display:flex;align-items:flex-end;gap:4px;height:90px;margin:8px 0 2px}
+.bars i{flex:1;background:var(--red);border-radius:3px 3px 0 0;min-height:2px;position:relative}
+.bars i em{position:absolute;top:-14px;left:0;right:0;text-align:center;font-style:normal;font-size:9px;color:#aaa}
+.bl{display:flex;gap:4px;font-size:9px;color:#777}.bl span{flex:1;text-align:center}
+.mb{height:4px;border-radius:2px;background:var(--red);margin:-2px 0 8px;opacity:.8}
 </style>
 </head>
 <body class="anim">
 <div id="splash"><div class="sl">SECURITY<br>SHOP</div><div class="sbar"></div></div>
-<header class="top"><div class="logo" id="logo"></div><button class="lang" id="lang"></button></header>
+<header class="top"><div class="logo" id="logo"></div><div class="hr"><button class="lang" id="theme">☀</button><button class="lang" id="lang"></button></div></header>
 <main id="app"></main>
 <nav class="bar" id="nav"></nav>
 <div class="overlay" id="pv"></div>
@@ -314,7 +336,7 @@ const I = {
     sizes:'Размеры', desc:'Описание', msg:'Написать менеджеру', sold:'Продано',
     emptyAll:'Пока нет товаров', emptyFav:'Пока ничего нет. Добавляйте вещи сердечком.', nothing:'Ничего не найдено',
     err:'Ошибка', about:'Мультибрендовый магазин одежды', tiktok:'Мы в TikTok',
-    hi:'Здравствуйте! Меня интересует: ', noManager:'Контакт менеджера не настроен',
+    hi:'Здравствуйте! Меня интересует: ', invT:'Позови друга — скидка вам обоим', invP:'Друг заходит по вашей ссылке, и вы оба получаете скидку {n} ₽. Покажите купон менеджеру.', invB:'Пригласить друга', cpT:'Ваши купоны', cpDesc:'код — покажите менеджеру', cpFriend:'за приглашение друга', cpWelcome:'🎁 Вам скидка {n} ₽ на покупку! Купон на главной.', noManager:'Контакт менеджера не настроен',
     brand:'Бренд', size:'Размер', priceF:'Цена', sort:'Сортировка', done:'Готово', reset:'Сбросить', from:'От', to:'До',
     s_def:'По умолчанию', s_date:'По дате', s_asc:'Цена: дешевле', s_desc:'Цена: дороже', s_disc:'Скидка: больше',s_discAsc:'Скидка: меньше',
     sale:'Скидки', upto:'до', soon:'скоро', onSale:'Вещи со скидкой', newest:'Новинки', seeAll:'Смотреть все',
@@ -328,7 +350,7 @@ const I = {
     sizes:'Sizes', desc:'Description', msg:'Message the manager', sold:'Sold',
     emptyAll:'No items yet', emptyFav:'Nothing here yet. Tap the heart to save items.', nothing:'Nothing found',
     err:'Error', about:'Multi-brand clothing store', tiktok:'Follow us on TikTok',
-    hi:"Hi! I'm interested in: ", noManager:'Manager contact is not configured',
+    hi:"Hi! I'm interested in: ", invT:'Invite a friend — discount for both', invP:'Your friend joins via your link and you both get {n} ₽ off. Show the coupon to the manager.', invB:'Invite a friend', cpT:'Your coupons', cpDesc:'code — show it to the manager', cpFriend:'for inviting a friend', cpWelcome:'🎁 You got {n} ₽ off your purchase! Coupon is on the home page.', noManager:'Manager contact is not configured',
     brand:'Brand', size:'Size', priceF:'Price', sort:'Sort', done:'Done', reset:'Reset', from:'From', to:'To',
     s_def:'Default', s_date:'Newest', s_asc:'Price: low to high', s_desc:'Price: high to low', s_disc:'Discount: high to low',s_discAsc:'Discount: low to high',
     sale:'Sale', upto:'up to', soon:'soon', onSale:'Items on sale', newest:'New arrivals', seeAll:'See all',
@@ -348,7 +370,7 @@ const ICON = {
 };
 
 const S = { lang: null, products: [], favs: new Set(), isAdmin: false, cfg: { shop:'SecurityShop', manager:'', tiktok:'' },
-  brands: [], banners: [], prizes: [], home: { saleMax: 80, cover: null, coverSale: null, coverWheel: null, wheelProduct: null }, spin: null,
+  coupons: [], refAmount: 500, aCoupons: [], lp: 0, brands: [], banners: [], prizes: [], home: { saleMax: 80, cover: null, coverSale: null, coverWheel: null, wheelProduct: null }, spin: null,
   tab: 'home', q: '', cat: '', fBrand: new Set(), fSize: new Set(), pmin: '', pmax: '', sort: 'def', sheet: null,
   at: 'items', aStats: null, aAud: 0, favPrice: {}, zoom: null, pvSize: '', aPrizes: [], aSpins: [], pv: null, form: null, rot: 0, spinning: false };
 try { S.lang = localStorage.getItem('lang'); } catch(e){}
@@ -397,7 +419,7 @@ function track(kind, pid, size) {
 async function loadAll() {
   const d = await api('/api/bootstrap');
   S.cfg = d.config; S.isAdmin = d.isAdmin; S.products = d.products; S.favs = new Set(d.favorites);
-  S.favPrice = d.favPrices || {}; S.brands = d.brands; S.banners = d.banners; S.prizes = d.prizes; S.home = d.home; S.spin = d.spin;
+  S.favPrice = d.favPrices || {}; S.brands = d.brands; S.banners = d.banners; S.prizes = d.prizes; S.home = d.home; S.spin = d.spin; S.coupons = d.coupons || []; S.refAmount = d.refAmount || 500;
 }
 
 /* ---------- lists / filters ---------- */
@@ -437,6 +459,18 @@ function gridHtml(l, emptyKey) {
   return l.map(card).join('');
 }
 const searchBox = (id = 'q') => `<div class="search">${ICON.search}<input id="${id}" type="search" value="${esc(S.q)}" placeholder="${T('search')}"></div>`;
+function inviteHtml() {
+  const n = S.refAmount || 500;
+  const cps = (S.coupons || []).map(c => `<div class="cp"><span>${c.kind === 'inviter' ? T('cpFriend') + (c.friend_name ? ' · ' + esc(c.friend_name) : '') : '🎁'} · −${c.amount} ₽</span><b>${esc(c.code)}</b></div>`).join('');
+  return `<div class="inv"><b>${T('invT')}</b><p>${T('invP').replace('{n}', n)}</p>
+    ${S.cfg.bot && tg.user ? `<button class="btn full" style="margin:0" data-act="invite">${T('invB')}</button>` : ''}
+    ${cps ? `<div class="sub2" style="margin:14px 0 0">${T('cpT')}</div><div class="hint" style="margin:2px 0 0">${T('cpDesc')}</div>${cps}` : ''}</div>`;
+}
+function inviteShare() {
+  if (!S.cfg.bot || !tg.user) return;
+  const url = 'https://t.me/' + S.cfg.bot + '?startapp=r' + tg.user.id;
+  tg.tlink('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(S.lang === 'ru' ? 'Заходи в SecurityShop — получишь скидку ' + (S.refAmount || 500) + ' ₽ 🎁' : 'Join SecurityShop — get ' + (S.refAmount || 500) + ' ₽ off 🎁'));
+}
 function footer() {
   return `<div class="foot"><div class="logo">${esc(S.cfg.shop)}</div>${T('about')}<br>
     ${S.cfg.tiktok ? `<button class="soc" data-act="tiktok">♪ ${T('tiktok')}</button>` : ''}</div>`;
@@ -484,7 +518,7 @@ function viewHome() {
     </div>` + mq +
     (news.length ? searchBox('hq') + `<div class="sec"><h2>${T('newest')}</h2><button data-act="tab" data-tab="catalog">${T('seeAll')} →</button></div>
       <div class="grid">${news.map(card).join('')}</div>
-      <button class="btn full" style="margin-top:16px" data-act="tab" data-tab="catalog">${T('toCatalog')} →</button>` : '') + footer();
+      <button class="btn full" style="margin-top:16px" data-act="tab" data-tab="catalog">${T('toCatalog')} →</button>` : '') + inviteHtml() + footer();
 }
 
 /* ---------- CATALOG / SALE ---------- */
@@ -670,11 +704,19 @@ function viewAdmin() {
       const rows = (l, none) => l.length ? l.map(x => `<div class="srow"><span>${esc(x.title)}</span><b>${x.n}</b></div>`).join('') : `<div class="hint">${none}</div>`;
       h += `<div class="stg"><div class="stc"><b>${s.users.d}</b><span>за 24 часа</span></div><div class="stc"><b>${s.users.w}</b><span>за 7 дней</span></div><div class="stc"><b>${s.users.t}</b><span>всего</span></div></div>
         <div class="hint" style="text-align:center">Уникальные посетители. Всего открытий магазина: ${s.users.opens}</div>
-        <div class="sub2">Чаще всего смотрят (7 дней)</div>${rows(s.views, 'Пока нет данных')}
+        <div class="sub2">Посетители по дням (14 дней)</div>
+        <div class="bars">${(() => { const mx = Math.max(1, ...s.daily.map(x => x.n)); return s.daily.map(x => `<i style="height:${Math.round(x.n / mx * 100)}%"><em>${x.n || ''}</em></i>`).join(''); })()}</div>
+        <div class="bl">${s.daily.map((x, i) => `<span>${i % 2 ? '' : x.d.slice(0, 2)}</span>`).join('')}</div>
+        <div class="sub2">Топ-10 по просмотрам (7 дней)</div>${(() => { const mx = Math.max(1, ...s.views.map(x => x.n)); return s.views.length ? s.views.map(x => `<div class="srow"><span>${esc(x.title)}</span><b>${x.n}</b></div><div class="mb" style="width:${Math.round(x.n / mx * 100)}%"></div>`).join('') : '<div class="hint">Пока нет данных</div>'; })()}
         <div class="sub2">Чаще в избранном</div>${rows(s.favs, 'Пока нет данных')}
         <div class="sub2">Чаще жмут «Написать менеджеру» (7 дней)</div>${rows(s.msgs, 'Пока нет данных')}
         <div class="sub2">Колесо призов</div><div class="srow"><span>Выиграли призов</span><b>${s.spins.total}</b></div><div class="srow"><span>Из них погашено</span><b>${s.spins.red}</b></div>
-        <div class="hint">Ваши собственные заходы в статистику не входят.</div>`;
+        <div class="sub2">Приглашения друзей</div><div class="srow"><span>Пришло по приглашению</span><b>${s.refs}</b></div>
+        <div class="sub2">Сводка и резервная копия</div>
+        <div class="srow"><span>Сводка в Telegram каждый день в 21:00</span><button class="sm" data-act="daily-toggle">${s.dailyOn ? 'Вкл' : 'Выкл'}</button></div>
+        <button class="btn full" data-act="daily-test" style="margin-top:10px;background:#1a1a1d;border:1px solid var(--line)">Прислать сводку сейчас</button>
+        <button class="btn full" data-act="backup" style="margin-top:8px;background:#1a1a1d;border:1px solid var(--line)">Прислать резервную копию в Telegram</button>
+        <div class="hint">Копия товаров приходит файлом в чат бота и сама раз в неделю (воскресенье, 21:00). Ваши заходы в статистику не входят.</div>`;
     }
   } else {
     const wp = S.home.wheelProduct, tot = S.aPrizes.filter(z => z.active).reduce((s, z) => s + z.weight, 0) || 1;
@@ -685,7 +727,13 @@ function viewAdmin() {
         <span><button class="sm" data-act="pz-on" data-id="${z.id}">${z.active ? 'Выкл' : 'Вкл'}</button> <button class="sm" data-act="pz-del" data-id="${z.id}">✕</button></span></div></div>`).join('') +
       `<div class="inl" style="margin-top:10px"><select id="pk"><option value="rub">₽</option><option value="percent">%</option></select><input id="pv_" type="number" inputmode="numeric" placeholder="Размер"><input id="pw" type="number" inputmode="numeric" placeholder="Вес"><button data-act="pz-add">+</button></div>
       <div class="hint">Вес — чем больше число, тем чаще выпадает приз.</div>
-      <div class="sub2">Кто крутил (последние 200)</div>` +
+      <div class="sub2">Скидка за приглашение друга</div>
+      <div class="inl"><input id="refamt" type="number" inputmode="numeric" value="${S.refAmount}" placeholder="Сумма ₽"><button data-act="ref-save">Сохранить</button></div>
+      <div class="hint">Получают оба: тот, кто пригласил, и друг. Купоны ниже — погашайте после покупки.</div>` +
+      (S.aCoupons.map(c => `<div class="wrow"><b>${esc(c.code)}</b> · −${c.amount} ₽ <span class="tag ${c.used ? '' : 'no'}">${c.used ? 'использован' : 'не использован'}</span><br>
+        <span style="color:var(--mut)">${c.kind === 'friend' ? 'Друг (по приглашению)' : 'Пригласивший'} · ${esc(c.kind === 'friend' ? c.uname : c.uname)} · ${dt(c.created_at)}</span>
+        <div class="r2"><span></span><button class="sm" data-act="cp-use" data-id="${c.id}">${c.used ? 'Вернуть' : 'Погасить'}</button></div></div>`).join('') || '<div class="hint">Купонов пока нет.</div>') +
+      `<div class="sub2">Кто крутил (последние 200)</div>` +
       (S.aSpins.map(z => {
         const exp = new Date(z.expires_at) < Date.now();
         return `<div class="wrow"><b>${esc(z.user_name || 'Без имени')}</b> ${z.test ? '<span class="tag gr">тест</span>' : ''}<br>
@@ -699,7 +747,7 @@ function viewAdmin() {
 async function adminTabLoad() {
   if (S.at === 'bc') { try { S.aAud = (await api('/api/admin/audience')).count; } catch (e) {} }
   if (S.at === 'stats') { try { S.aStats = await api('/api/admin/stats'); } catch (e) {} }
-  if (S.at === 'wheel') { try { S.aPrizes = await api('/api/admin/prizes'); S.aSpins = await api('/api/admin/spins'); } catch (e) {} }
+  if (S.at === 'wheel') { try { S.aPrizes = await api('/api/admin/prizes'); S.aSpins = await api('/api/admin/spins'); S.aCoupons = await api('/api/admin/coupons'); } catch (e) {} }
 }
 async function reloadAdmin() { await loadAll(); await adminTabLoad(); render(); }
 const readFile = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
@@ -757,14 +805,29 @@ const Z = { scale: 1, x: 0, y: 0, img: null, t: 0 };
 function zImg() { const g = $('zg'); return g ? (g.children[Math.round(g.scrollLeft / g.clientWidth)] || {}).firstChild : null; }
 function zApply() { if (Z.img) Z.img.style.transform = `translate(${Z.x}px,${Z.y}px) scale(${Z.scale})`; const g = $('zg'); if (g) g.classList.toggle('zoomed', Z.scale > 1.02); }
 function zReset() { if (Z.img) Z.img.style.transform = ''; Z.scale = 1; Z.x = 0; Z.y = 0; Z.img = null; const g = $('zg'); if (g) g.classList.remove('zoomed'); }
-function openZoom(i) {
-  const p = S.products.find(x => x.id === S.pv); if (!p || !p.photos.length) return;
+function openZoom(i, pid) {
+  const p = S.products.find(x => x.id === (pid || S.pv)); if (!p || !p.photos.length) return;
   S.zoom = i; zReset();
-  $('zv').innerHTML = `<button class="zclose" data-act="zoom-close">✕</button><div class="zg" id="zg">${p.photos.map(id => `<div class="zs"><img src="/img/${id}" draggable="false"></div>`).join('')}</div>${p.photos.length > 1 ? `<div class="zcnt" id="zcnt">${i + 1} / ${p.photos.length}</div>` : ''}`;
+  $('zv').innerHTML = `<button class="zclose" data-act="zoom-close">✕</button><div class="zg" id="zg">${p.photos.map(id => `<div class="zs"><img src="/img/${id}" draggable="false"></div>`).join('')}</div>${pid ? `<div class="zcap">${esc(tr(p, 'title'))} · ${price(p.price)}</div>` : ''}${p.photos.length > 1 ? `<div class="zcnt" id="zcnt">${i + 1} / ${p.photos.length}</div>` : ''}`;
   $('zv').classList.add('show'); const g = $('zg'); g.scrollLeft = i * g.clientWidth;
   g.addEventListener('scroll', () => { zReset(); const c = $('zcnt'); if (c) c.textContent = (Math.round(g.scrollLeft / g.clientWidth) + 1) + ' / ' + p.photos.length; }, { passive: true });
   updateBack();
 }
+(function longPress() {
+  let tm = null, sx = 0, sy = 0;
+  const stop = () => { clearTimeout(tm); tm = null; };
+  document.addEventListener('touchstart', e => {
+    const c = e.target.closest && e.target.closest('.card'); stop();
+    if (!c || e.target.closest('.fav') || e.touches.length !== 1) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    const id = Number(c.dataset.id);
+    tm = setTimeout(() => { tm = null; const p = S.products.find(x => x.id === id); if (!p || !p.photos.length) return; S.lp = Date.now(); tg.tap(); openZoom(0, id); }, 450);
+  }, { passive: true });
+  document.addEventListener('touchmove', e => { if (tm && Math.hypot(e.touches[0].clientX - sx, e.touches[0].clientY - sy) > 10) stop(); }, { passive: true });
+  document.addEventListener('touchend', stop, { passive: true });
+  document.addEventListener('touchcancel', stop, { passive: true });
+  document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.card')) e.preventDefault(); });
+})();
 function closeZoom() { S.zoom = null; zReset(); $('zv').classList.remove('show'); $('zv').innerHTML = ''; updateBack(); }
 (function zoomTouch() {
   const el = $('zv'); let mode = null, d0 = 0, s0 = 1, sx = 0, sy = 0, ox = 0, oy = 0;
@@ -796,6 +859,7 @@ function messageManager(id) {
   let text = T('hi') + tr(p, 'title') + ' (' + price(p.price) + ')' + (S.pvSize ? ', ' + T('size').toLowerCase() + ': ' + S.pvSize : '');
   const { z, active } = spinState();
   if (active && z.product_id === p.id) text += ` — ${S.lang === 'ru' ? 'приз' : 'prize'} ${prizeLabel(z)}, ${T('code')} ${z.code}`;
+  if ((S.coupons || []).length) { const c = S.coupons[0]; text += ` — ${S.lang === 'ru' ? 'купон' : 'coupon'} −${c.amount} ₽, ${T('code')} ${c.code}`; }
   track('msg', id, S.pvSize);
   tg.tlink('https://t.me/' + S.cfg.manager + '?text=' + encodeURIComponent(text));
 }
@@ -962,7 +1026,13 @@ document.addEventListener('click', async e => {
   const el = e.target.closest('[data-act]'); if (!el) return;
   const act = el.dataset.act, id = Number(el.dataset.id);
   if (act === 'fav') { e.stopPropagation(); return toggleFav(id); }
-  if (act === 'open') { if (S.pv !== id) { /* open from wheel/home */ } return openProduct(id); }
+  if (act === 'invite') return inviteShare();
+  if (act === 'daily-toggle') return admCall('/api/admin/settings', 'PUT', { daily: !S.aStats.dailyOn }, () => {});
+  if (act === 'daily-test') { try { await api('/api/admin/daily-test', { method: 'POST' }); tg.alert('Сводка отправлена в чат с ботом'); } catch (er) { tg.alert(T('err') + ': ' + er.message); } return; }
+  if (act === 'backup') { try { await api('/api/admin/backup-send', { method: 'POST' }); tg.alert('Копия отправлена в чат с ботом'); } catch (er) { tg.alert(T('err') + ': ' + er.message); } return; }
+  if (act === 'ref-save') return admCall('/api/admin/settings', 'PUT', { ref_amount: $('refamt').value }, () => {});
+  if (act === 'cp-use') return admCall('/api/admin/coupons/' + id + '/use', 'PATCH', {}, () => {});
+  if (act === 'open') { if (Date.now() - S.lp < 800) return; return openProduct(id); }
   if (act === 'msg') return messageManager(id);
   if (act === 'share') return shareProduct(id);
   if (act === 'zoom') return openZoom(Number(el.dataset.i));
@@ -1050,6 +1120,15 @@ document.addEventListener('input', e => {
   if (e.target.id === 'sh_min') S.pmin = e.target.value;
   if (e.target.id === 'sh_max') S.pmax = e.target.value;
 });
+
+(function theme() {
+  const root = document.documentElement, b = $('theme');
+  const apply = on => { root.classList.toggle('light', on); b.textContent = on ? '☾' : '☀';
+    const c = on ? '#ffffff' : '#000000'; tg.call('setHeaderColor', c); tg.call('setBackgroundColor', c); };
+  let on = false; try { on = localStorage.getItem('theme') === 'light'; } catch (e) {}
+  apply(on);
+  b.addEventListener('click', () => { on = !on; apply(on); try { localStorage.setItem('theme', on ? 'light' : 'dark'); } catch (e) {} });
+})();
 $('lang').addEventListener('click', () => {
   S.lang = S.lang === 'ru' ? 'en' : 'ru';
   try { localStorage.setItem('lang', S.lang); } catch (e) {}
@@ -1059,10 +1138,16 @@ $('lang').addEventListener('click', () => {
 });
 
 (async function init() {
+  let refNew = 0;
+  try {
+    const sp0 = WA && WA.initDataUnsafe && WA.initDataUnsafe.start_param, mr = /^r(\d+)$/.exec(sp0 || '');
+    if (mr && tg.initData) { const r = await api('/api/ref', { method: 'POST', body: { inviter: Number(mr[1]) } }); if (r && r.created) refNew = r.amount; }
+  } catch (e) {}
   try { await loadAll(); document.title = S.cfg.shop; }
   catch (e) { $('app').innerHTML = '<div class="empty">Connection error</div>'; hideSplash(); return; }
   render();
   track('open');
+  if (refNew) setTimeout(() => tg.alert(T('cpWelcome').replace('{n}', refNew)), 600);
   const sp = WA && WA.initDataUnsafe && WA.initDataUnsafe.start_param, m = /^p(\d+)$/.exec(sp || '');
   if (m && S.products.some(p => p.id === Number(m[1]))) openProduct(Number(m[1]));
   hideSplash();

@@ -82,6 +82,15 @@ async function initDb() {
     alter table favorites add column if not exists price_at integer;
     update favorites f set price_at = p.price from products p where f.product_id = p.id and f.price_at is null;
     alter table products add column if not exists cond text not null default '';
+    create table if not exists referrals (
+      invitee bigint primary key, inviter bigint not null, created_at timestamptz not null default now()
+    );
+    create table if not exists coupons (
+      id serial primary key, code text not null unique, user_id bigint not null,
+      kind text not null, amount integer not null default 500, friend_name text not null default '',
+      used boolean not null default false, created_at timestamptz not null default now()
+    );
+    create index if not exists coupons_user_idx on coupons(user_id);
     create table if not exists bot_users (
       user_id bigint primary key, name text not null default '', blocked boolean not null default false,
       created_at timestamptz not null default now()
@@ -289,7 +298,9 @@ app.get('/api/bootstrap', h(async (req, res) => {
   let favorites = [];
   let favPrices = {};
   let spin = null;
+  let coupons = [];
   if (req.user) {
+    coupons = (await pool.query('select code,kind,amount,friend_name from coupons where user_id=$1 and not used order by id', [req.user.id])).rows;
     const r = await pool.query('select product_id, price_at from favorites where user_id=$1', [req.user.id]);
     favorites = r.rows.map(x => x.product_id);
     favPrices = Object.fromEntries(r.rows.map(x => [x.product_id, x.price_at]));
@@ -307,6 +318,8 @@ app.get('/api/bootstrap', h(async (req, res) => {
     prizes: prizes.rows,
     home: { saleMax: Number(st.sale_max) || 80, cover: Number(st.cover) || null, coverSale: Number(st.cover_sale) || null, coverWheel: Number(st.cover_wheel) || null, wheelProduct: products.some(p => p.id === wp) ? wp : null },
     spin,
+    coupons,
+    refAmount: Number(st.ref_amount) || 500,
   });
 }));
 
@@ -431,7 +444,7 @@ app.get('/api/admin/stats', requireAdmin, h(async (_req, res) => {
        from events where kind='open' and user_id <> all($1::bigint[])`),
     q(`select p.id, ${T} title, count(*)::int n from events e join products p on p.id=e.product_id
        where e.kind='view' and e.created_at > now() - interval '7 days' and e.user_id <> all($1::bigint[])
-       group by p.id order by n desc limit 5`),
+       group by p.id order by n desc limit 10`),
     q(`select p.id, ${T} title, count(*)::int n from events e join products p on p.id=e.product_id
        where e.kind='msg' and e.created_at > now() - interval '7 days' and e.user_id <> all($1::bigint[])
        group by p.id order by n desc limit 5`),
@@ -439,7 +452,17 @@ app.get('/api/admin/stats', requireAdmin, h(async (_req, res) => {
        where f.user_id <> all($1::bigint[]) group by p.id order by n desc limit 5`),
     q(`select count(*)::int total, (count(*) filter (where redeemed))::int red from spins where not test and user_id <> all($1::bigint[])`),
   ]);
-  res.json({ users: u.rows[0], views: tv.rows, msgs: tm.rows, favs: tf.rows, spins: sp.rows[0] });
+  const dl = (await q(`select to_char(created_at at time zone '${TZ}','YYYY-MM-DD') d, count(distinct user_id)::int n, count(*)::int o
+    from events where kind='open' and created_at > now() - interval '16 days' and user_id <> all($1::bigint[]) group by 1`)).rows;
+  const map = Object.fromEntries(dl.map(r => [r.d, r]));
+  const daily = [];
+  for (let i = 13; i >= 0; i--) {
+    const k = new Date(Date.now() - i * 864e5).toLocaleDateString('sv-SE', { timeZone: TZ });
+    daily.push({ d: k.slice(8) + '.' + k.slice(5, 7), n: map[k] ? map[k].n : 0 });
+  }
+  const refs = (await pool.query('select count(*)::int n from referrals')).rows[0].n;
+  const set = await getSettings();
+  res.json({ users: u.rows[0], views: tv.rows, msgs: tm.rows, favs: tf.rows, spins: sp.rows[0], daily, refs, dailyOn: set.daily !== '0', refAmount: Number(set.ref_amount) || 500 });
 }));
 
 app.patch('/api/admin/banners/:id/move', requireAdmin, h(async (req, res) => {
@@ -490,6 +513,8 @@ app.put('/api/admin/settings', requireAdmin, h(async (req, res) => {
   const b = req.body || {};
   if (typeof b.tiktok === 'string') await setSetting('tiktok', b.tiktok.trim());
   if ('sale_max' in b) await setSetting('sale_max', String(Math.min(99, Math.max(1, parseInt(b.sale_max, 10) || 80))));
+  if ('daily' in b) await setSetting('daily', b.daily ? '1' : '0');
+  if ('ref_amount' in b) await setSetting('ref_amount', String(Math.min(100000, Math.max(1, parseInt(b.ref_amount, 10) || 500))));
   if ('wheel_product' in b) await setSetting('wheel_product', String(Number(b.wheel_product) || ''));
   for (const k of ['cover', 'cover_sale', 'cover_wheel']) {
     if (b[k] === undefined) continue;
@@ -565,6 +590,95 @@ app.patch('/api/admin/spins/:id/redeem', requireAdmin, h(async (req, res) => {
   await pool.query('update spins set redeemed = not redeemed where id=$1', [Number(req.params.id)]);
   res.json({ ok: true });
 }));
+
+// ---------- referrals (invite a friend) ----------
+const genCode = () => crypto.randomBytes(3).toString('hex').toUpperCase();
+app.post('/api/ref', requireUser, h(async (req, res) => {
+  const inviter = Number((req.body || {}).inviter), me = req.user.id;
+  if (!inviter || inviter === me || ADMIN_IDS.includes(String(me))) return res.json({ created: false });
+  const old = await pool.query("select 1 from events where user_id=$1 and created_at < now() - interval '2 minutes' limit 1", [me]);
+  const has = await pool.query('select 1 from referrals where invitee=$1', [me]);
+  const inv = await pool.query('select 1 from events where user_id=$1 limit 1', [inviter]);
+  if (old.rowCount || has.rowCount || !inv.rowCount) return res.json({ created: false });
+  const amount = Number((await getSettings()).ref_amount) || 500;
+  const name = userName(req.user) || 'Друг';
+  await pool.query('insert into referrals(invitee,inviter) values($1,$2) on conflict do nothing', [me, inviter]);
+  await pool.query("insert into coupons(code,user_id,kind,amount,friend_name) values($1,$2,'friend',$3,'')", ['F' + genCode(), me, amount]);
+  await pool.query("insert into coupons(code,user_id,kind,amount,friend_name) values($1,$2,'inviter',$3,$4)", ['I' + genCode(), inviter, amount, name]);
+  notifyAdmins(`🤝 ${name} пришёл по приглашению. Выданы два купона на ${amount} ₽ (ему и пригласившему).`);
+  tg('sendMessage', { chat_id: inviter, text: `🎁 ${name} зашёл по вашей ссылке! Вам скидка ${amount} ₽ — откройте магазин, купон уже там.` }).catch(() => {});
+  res.json({ created: true, amount });
+}));
+app.get('/api/admin/coupons', requireAdmin, h(async (_req, res) => {
+  const r = await pool.query(`select c.id,c.code,c.kind,c.amount,c.used,c.created_at,c.friend_name,
+    coalesce((select user_name from events e where e.user_id=c.user_id order by id desc limit 1),'') uname
+    from coupons c order by c.id desc limit 100`);
+  res.json(r.rows);
+}));
+app.patch('/api/admin/coupons/:id/use', requireAdmin, h(async (req, res) => {
+  await pool.query('update coupons set used = not used where id=$1', [Number(req.params.id)]);
+  res.json({ ok: true });
+}));
+
+// ---------- daily summary + weekly backup ----------
+const TZ = 'Asia/Yekaterinburg';
+const localParts = () => {
+  const f = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', weekday: 'short', hour12: false });
+  const o = {};
+  f.formatToParts(new Date()).forEach(x => (o[x.type] = x.value));
+  return { day: `${o.year}-${o.month}-${o.day}`, hour: Number(o.hour) % 24, wd: o.weekday };
+};
+async function dailySummaryText() {
+  const ex = ADMIN_IDS.length ? ADMIN_IDS : ['0'];
+  const day = "(created_at at time zone '" + TZ + "')::date = (now() at time zone '" + TZ + "')::date";
+  const ev = (await pool.query(`select count(distinct user_id) filter (where kind='open')::int u, count(*) filter (where kind='open')::int o,
+      count(*) filter (where kind='view')::int v, count(*) filter (where kind='msg')::int m
+      from events where ${day} and user_id <> all($1::bigint[])`, [ex])).rows[0];
+  const top = (await pool.query(`select coalesce(nullif(p.title_ru,''),p.title_en) t, count(*)::int n from events e join products p on p.id=e.product_id
+      where e.kind='view' and (e.created_at at time zone '${TZ}')::date = (now() at time zone '${TZ}')::date and e.user_id <> all($1::bigint[])
+      group by p.id order by n desc limit 3`, [ex])).rows;
+  const refs = (await pool.query(`select count(*)::int n from referrals where (created_at at time zone '${TZ}')::date = (now() at time zone '${TZ}')::date`)).rows[0].n;
+  return `📊 Итоги дня · ${SHOP_NAME}\n👥 Посетителей: ${ev.u}\n🚪 Открытий магазина: ${ev.o}\n👀 Просмотров товаров: ${ev.v}\n💬 Нажали «Написать менеджеру»: ${ev.m}\n🤝 Пришло по приглашениям: ${refs}` +
+    (top.length ? '\n\n🔥 Чаще смотрели:\n' + top.map((x, i) => `${i + 1}. ${x.t} — ${x.n}`).join('\n') : '');
+}
+async function sendBackup(toIds) {
+  const [products, photos, brands, banners, prizes, st] = await Promise.all([
+    pool.query('select * from products order by id'),
+    pool.query("select id, product_id, position, mime, encode(data,'base64') b64 from photos order by id"),
+    pool.query('select * from brands order by id'),
+    pool.query('select id,title_ru,title_en,text_ru,text_en,target,position from banners order by id'),
+    pool.query('select * from prizes order by id'),
+    getSettings(),
+  ]);
+  const full = { at: new Date().toISOString(), products: products.rows, brands: brands.rows, banners: banners.rows, prizes: prizes.rows, settings: st, photos: photos.rows };
+  let body = JSON.stringify(full);
+  let note = 'с фото';
+  if (body.length > 45 * 1024 * 1024) { full.photos = photos.rows.map(p => ({ id: p.id, product_id: p.product_id, position: p.position, mime: p.mime })); body = JSON.stringify(full); note = 'БЕЗ фото (слишком большой файл)'; }
+  for (const id of toIds) {
+    const fd = new FormData();
+    fd.append('chat_id', String(id));
+    fd.append('caption', `💾 Резервная копия магазина (${note}). Товаров: ${products.rowCount}, фото: ${photos.rowCount}. Сохраните файл.`);
+    fd.append('document', new Blob([body], { type: 'application/json' }), `securityshop-backup-${localParts().day}.json`);
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: 'POST', body: fd }).catch(e => console.error('backup', e.message));
+  }
+}
+app.get('/api/admin/daily', requireAdmin, h(async (_req, res) => res.json({ on: (await getSettings()).daily !== '0' })));
+app.post('/api/admin/daily-test', requireAdmin, h(async (_req, res) => { notifyAdmins(await dailySummaryText()); res.json({ ok: true }); }));
+app.post('/api/admin/backup-send', requireAdmin, h(async (req, res) => { await sendBackup([req.user.id]); res.json({ ok: true }); }));
+async function scheduler() {
+  if (!BOT_TOKEN || !ADMIN_IDS.length) return;
+  const { day, hour, wd } = localParts();
+  if (hour < 21) return;
+  const st = await getSettings();
+  if (st.daily !== '0' && st.last_daily !== day) {
+    await setSetting('last_daily', day);
+    notifyAdmins(await dailySummaryText());
+  }
+  if (wd.toLowerCase().startsWith('вс') || wd.toLowerCase().startsWith('sun')) {
+    if (st.last_backup !== day) { await setSetting('last_backup', day); await sendBackup(ADMIN_IDS); }
+  }
+}
+setInterval(() => scheduler().catch(e => console.error('scheduler', e.message)), 60 * 1000);
 
 // ---------- bot (webhook) ----------
 const tg = (method, body) =>
