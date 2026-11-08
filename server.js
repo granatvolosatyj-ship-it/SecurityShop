@@ -316,7 +316,7 @@ app.get('/api/bootstrap', h(async (req, res) => {
     brands: brands.rows,
     banners: banners.rows,
     prizes: prizes.rows,
-    home: { saleMax: Number(st.sale_max) || 80, cover: Number(st.cover) || null, coverSale: Number(st.cover_sale) || null, coverWheel: Number(st.cover_wheel) || null, wheelProduct: products.some(p => p.id === wp) ? wp : null },
+    home: { saleMax: Number(st.sale_max) || 80, cover: Number(st.cover) || null, coverSale: Number(st.cover_sale) || null, coverWheel: Number(st.cover_wheel) || null, bnTiktok: Number(st.bn_tiktok) || null, bnWheel: Number(st.bn_wheel) || null, bnInvite: Number(st.bn_invite) || null, wheelProduct: products.some(p => p.id === wp) ? wp : null },
     spin,
     coupons,
     refAmount: Number(st.ref_amount) || 500,
@@ -516,7 +516,7 @@ app.put('/api/admin/settings', requireAdmin, h(async (req, res) => {
   if ('daily' in b) await setSetting('daily', b.daily ? '1' : '0');
   if ('ref_amount' in b) await setSetting('ref_amount', String(Math.min(100000, Math.max(1, parseInt(b.ref_amount, 10) || 500))));
   if ('wheel_product' in b) await setSetting('wheel_product', String(Number(b.wheel_product) || ''));
-  for (const k of ['cover', 'cover_sale', 'cover_wheel']) {
+  for (const k of ['cover', 'cover_sale', 'cover_wheel', 'bn_tiktok', 'bn_wheel', 'bn_invite']) {
     if (b[k] === undefined) continue;
     const old = Number((await getSettings())[k]) || 0;
     let nid = '';

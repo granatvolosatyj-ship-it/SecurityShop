@@ -482,11 +482,11 @@ function footer() {
 
 /* ---------- HOME ---------- */
 function bannerList() {
-  const inv = S.cfg.bot && tg.user ? [{ id: -1, title_ru: 'Позови друга', title_en: 'Invite a friend', text_ru: 'Скидка ' + (S.refAmount || 500) + ' ₽ вам обоим', text_en: (S.refAmount || 500) + ' ₽ off for both of you', target: 'invite' }] : [];
+  const inv = S.cfg.bot && tg.user ? [{ id: -1, asset_id: S.home.bnInvite, title_ru: 'Позови друга', title_en: 'Invite a friend', text_ru: 'Скидка ' + (S.refAmount || 500) + ' ₽ вам обоим', text_en: (S.refAmount || 500) + ' ₽ off for both of you', target: 'invite' }] : [];
   if (S.banners.length) return [...S.banners, ...inv];
   return [
-    { id: 0, title_ru: 'Мы в TikTok', title_en: 'Follow us on TikTok', text_ru: 'Обзоры и новинки', text_en: 'Reviews and new drops', target: 'tiktok' },
-    { id: 0, title_ru: 'Колесо призов', title_en: 'Prize wheel', text_ru: 'Скидка каждый день', text_en: 'A discount every day', target: 'wheel' },
+    { id: 0, title_ru: 'Мы в TikTok', asset_id: S.home.bnTiktok, title_en: 'Follow us on TikTok', text_ru: 'Обзоры и новинки', text_en: 'Reviews and new drops', target: 'tiktok' },
+    { id: 0, title_ru: 'Колесо призов', asset_id: S.home.bnWheel, title_en: 'Prize wheel', text_ru: 'Скидка каждый день', text_en: 'A discount every day', target: 'wheel' },
     ...inv
   ];
 }
@@ -689,6 +689,9 @@ function viewAdmin() {
         <div class="ai"><b>${esc(b.title_ru || b.title_en || '(без названия)')}</b><span>${esc((targets.find(t => t[0] === b.target) || [])[1] || '')}</span></div>
         <div class="ab"><button data-act="bn-up" data-id="${b.id}">↑</button><button data-act="bn-down" data-id="${b.id}">↓</button><button data-act="bn-edit" data-id="${b.id}">✎</button><button data-act="bn-del" data-id="${b.id}">✕</button></div></div>`).join('') +
       (S.banners.length ? '' : '<div class="hint">Пока своих баннеров нет — показываются стандартные (TikTok и Колесо).</div>') +
+      covBlock('bn_tiktok', 'Фото стандартного баннера «TikTok»', S.home.bnTiktok, 'Сейчас — тёмный фон. Виден, пока нет своих баннеров.') +
+      covBlock('bn_wheel', 'Фото стандартного баннера «Колесо призов»', S.home.bnWheel, 'Сейчас — тёмный фон. Виден, пока нет своих баннеров.') +
+      covBlock('bn_invite', 'Фото баннера «Позови друга»', S.home.bnInvite, 'Сейчас — тёмный фон.') +
       covBlock('cover', 'Фото плитки «Каталог»', S.home.cover, 'Сейчас — автоколлаж из фото последних товаров.') +
       covBlock('cover_sale', 'Фото плитки «Скидки»', S.home.coverSale, 'Сейчас — красный фон.') +
       covBlock('cover_wheel', 'Фото плитки «Колесо призов»', S.home.coverWheel, 'Сейчас — красный фон с колесом.') +
