@@ -51,6 +51,12 @@ nav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;st
 .soc{display:inline-flex;margin-top:14px;align-items:center;gap:8px;border:1px solid var(--line);background:#0b0b0c;color:#fff;border-radius:20px;padding:11px 18px;font-size:14px}
 .overlay{position:fixed;inset:0;background:#000;z-index:50;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch}
 .overlay.show{display:block}
+#pv.show{animation:pvIn .34s cubic-bezier(.2,.8,.2,1)}
+#pv.closing{display:block;animation:pvOut .26s ease forwards;pointer-events:none}
+@keyframes pvIn{from{opacity:0;transform:translateY(28px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes pvOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(28px) scale(.97)}}
+#zv.show{animation:zvIn .25s ease}
+@keyframes zvIn{from{opacity:0}to{opacity:1}}
 .pback{position:fixed;top:12px;left:12px;z-index:70;width:38px;height:38px;border:0;border-radius:50%;padding:0;display:grid;place-items:center;background:rgba(0,0,0,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:20px;line-height:1}
 .gal{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;background:#0b0b0c}
 .gal::-webkit-scrollbar{display:none}
@@ -460,11 +466,9 @@ function gridHtml(l, emptyKey) {
 }
 const searchBox = (id = 'q') => `<div class="search">${ICON.search}<input id="${id}" type="search" value="${esc(S.q)}" placeholder="${T('search')}"></div>`;
 function inviteHtml() {
-  const n = S.refAmount || 500;
   const cps = (S.coupons || []).map(c => `<div class="cp"><span>${c.kind === 'inviter' ? T('cpFriend') + (c.friend_name ? ' · ' + esc(c.friend_name) : '') : '🎁'} · −${c.amount} ₽</span><b>${esc(c.code)}</b></div>`).join('');
-  return `<div class="inv"><b>${T('invT')}</b><p>${T('invP').replace('{n}', n)}</p>
-    ${S.cfg.bot && tg.user ? `<button class="btn full" style="margin:0" data-act="invite">${T('invB')}</button>` : ''}
-    ${cps ? `<div class="sub2" style="margin:14px 0 0">${T('cpT')}</div><div class="hint" style="margin:2px 0 0">${T('cpDesc')}</div>${cps}` : ''}</div>`;
+  if (!cps) return '';
+  return `<div class="inv"><b>${T('cpT')}</b><p>${T('cpDesc')}</p>${cps}</div>`;
 }
 function inviteShare() {
   if (!S.cfg.bot || !tg.user) return;
@@ -478,10 +482,12 @@ function footer() {
 
 /* ---------- HOME ---------- */
 function bannerList() {
-  if (S.banners.length) return S.banners;
+  const inv = S.cfg.bot && tg.user ? [{ id: -1, title_ru: 'Позови друга', title_en: 'Invite a friend', text_ru: 'Скидка ' + (S.refAmount || 500) + ' ₽ вам обоим', text_en: (S.refAmount || 500) + ' ₽ off for both of you', target: 'invite' }] : [];
+  if (S.banners.length) return [...S.banners, ...inv];
   return [
     { id: 0, title_ru: 'Мы в TikTok', title_en: 'Follow us on TikTok', text_ru: 'Обзоры и новинки', text_en: 'Reviews and new drops', target: 'tiktok' },
-    { id: 0, title_ru: 'Колесо призов', title_en: 'Prize wheel', text_ru: 'Скидка каждый день', text_en: 'A discount every day', target: 'wheel' }
+    { id: 0, title_ru: 'Колесо призов', title_en: 'Prize wheel', text_ru: 'Скидка каждый день', text_en: 'A discount every day', target: 'wheel' },
+    ...inv
   ];
 }
 function bannersHtml() {
@@ -777,7 +783,7 @@ function setupBanners() {
 }
 
 /* ---------- product page ---------- */
-function openProduct(id) { S.pv = id; const pp = S.products.find(x => x.id === id); const ss = pp ? sizesOf(pp) : []; S.pvSize = ss.length === 1 ? ss[0] : ''; track('view', id); renderProduct(); $('pv').classList.add('show'); $('pv').scrollTop = 0; updateBack(); }
+function openProduct(id) { S.pv = id; const pp = S.products.find(x => x.id === id); const ss = pp ? sizesOf(pp) : []; S.pvSize = ss.length === 1 ? ss[0] : ''; track('view', id); renderProduct(); $('pv').classList.remove('closing'); $('pv').classList.add('show'); $('pv').scrollTop = 0; updateBack(); }
 function renderProduct() {
   const p = S.products.find(x => x.id === S.pv);
   if (!p) { closeTop(); return; }
@@ -1013,7 +1019,7 @@ function closeTop() {
   if (S.zoom !== null) closeZoom();
   else if (S.sheet) hideSheet();
   else if (S.form) { S.form = null; $('fm').classList.remove('show'); }
-  else if (S.pv) { S.pv = null; $('pv').classList.remove('show'); }
+  else if (S.pv) { S.pv = null; const v = $('pv'); v.classList.add('closing'); setTimeout(() => { if (!S.pv) v.classList.remove('show', 'closing'); }, 260); }
   updateBack();
 }
 try { WA.BackButton.onClick(closeTop); } catch (e) {}
@@ -1058,7 +1064,7 @@ document.addEventListener('click', async e => {
     if (t === 'admin') { await adminTabLoad(); if (S.tab === 'admin') render(); }
     return;
   }
-  if (act === 'bn') { const t = el.dataset.t; if (!t) return; if (t === 'tiktok') return tg.link(S.cfg.tiktok);
+  if (act === 'bn') { const t = el.dataset.t; if (!t) return; if (t === 'invite') return inviteShare(); if (t === 'tiktok') return tg.link(S.cfg.tiktok);
     S.tab = t; S.q = ''; S.fBrand.clear(); S.fSize.clear(); S.pmin = ''; S.pmax = ''; S.sort = 'def'; render(); scrollTo(0, 0); if (t === 'wheel') { try { S.spin = (await api('/api/wheel/me')).spin; if ($('wpanel')) $('wpanel').innerHTML = wheelPanel(); } catch (x) {} } return; }
   if (act === 'cat') { S.cat = el.dataset.cat; $('app').innerHTML = viewCatalog('catalog'); return; }
   if (act === 'tiktok') return tg.link(S.cfg.tiktok);
