@@ -309,6 +309,29 @@ nav.bar{background:linear-gradient(180deg,rgba(27,12,14,.55),rgba(10,10,10,.55))
 .bars i em{position:absolute;top:-14px;left:0;right:0;text-align:center;font-style:normal;font-size:9px;color:#aaa}
 .bl{display:flex;gap:4px;font-size:9px;color:#777}.bl span{flex:1;text-align:center}
 .mb{height:4px;border-radius:2px;background:var(--red);margin:-2px 0 8px;opacity:.8}
+
+/* ---- баннеры: название, серое описание, красная кнопка; фото в своей колонке и не перекрывает текст ---- */
+.bs{display:grid;grid-template-columns:minmax(0,1fr) 40%;column-gap:12px;align-items:center;aspect-ratio:auto;min-height:150px;padding:16px;background:#0e0e10;border:1px solid #2a2a2e}
+.bs:after{display:none}
+.bs .bt{position:static;grid-column:1;grid-row:1;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
+.bs .bt b{font-size:21px;font-weight:700;line-height:1.2;color:#fff}
+.bs .bt span{margin:0;font-size:14px;line-height:1.4;color:var(--mut)}
+.bs img{position:static;grid-column:2;grid-row:1;width:100%;height:100%;min-height:118px;max-height:170px;border-radius:16px;object-fit:cover;display:block}
+.bs .bt .go{position:static;width:auto;height:44px;margin-top:8px;padding:0 18px;border-radius:999px;background:var(--red);display:inline-flex;align-items:center;font-size:14px;font-weight:600;color:#fff}
+.bs.noimg{grid-template-columns:minmax(0,1fr)}
+.bs.plain{display:block;padding:0;aspect-ratio:16/9}
+.bs.plain img{position:absolute;inset:0;width:100%;height:100%;max-height:none;border-radius:0}
+.bs.plain .bt{display:none}
+.bs.plain .go{position:absolute;right:16px;bottom:16px;z-index:2;width:auto;height:40px;padding:0 16px;border-radius:999px;background:rgba(0,0,0,.55);display:inline-flex;align-items:center;font-size:14px;font-weight:600;color:#fff}
+/* каталог: текст слева, фото справа в своей колонке */
+.tile.big{display:grid;grid-template-columns:minmax(0,1fr) 42%;column-gap:12px;align-items:center;height:auto;min-height:118px;padding:14px 14px 14px 18px}
+.tile.big:after{display:none}
+.tile.big .tx{position:static;transform:none;grid-column:1;grid-row:1;align-self:end;right:auto;left:auto}
+.tile.big .ar{position:static;transform:none;grid-column:1;grid-row:2;justify-self:start;align-self:start;margin-top:8px;width:44px;height:44px}
+.tile.big .cv{position:static;grid-column:2;grid-row:1 / span 2;height:100px;border-radius:14px;overflow:hidden;gap:2px}
+.tile.big .tx span{color:var(--mut)}
+.tile.big:has(.cv:empty){grid-template-columns:minmax(0,1fr)}
+.tile.big .cv:empty{display:none}
 </style>
 </head>
 <body class="anim">
@@ -492,10 +515,15 @@ function bannerList() {
 }
 function bannersHtml() {
   const b = bannerList();
-  return `<div class="bn" id="bn">${b.map(x => `<div class="bs ${!tr(x, 'title') && !tr(x, 'text') ? 'plain' : ''}" data-act="bn" data-t="${x.target}">
+  const go = x => x.target ? `<div class="go">${S.lang === 'en' ? 'Open' : 'Открыть'} →</div>` : '';
+  return `<div class="bn" id="bn">${b.map(x => {
+    const plain = !tr(x, 'title') && !tr(x, 'text');
+    const cls = (plain ? 'plain' : '') + (x.asset_id ? '' : ' noimg');
+    return `<div class="bs ${cls}" data-act="bn" data-t="${x.target}">
+    <div class="bt"><b>${esc(tr(x, 'title'))}</b>${tr(x, 'text') ? `<span>${esc(tr(x, 'text'))}</span>` : ''}${plain ? '' : go(x)}</div>
     ${x.asset_id ? `<img src="/asset/${x.asset_id}">` : ''}
-    <div class="bt"><b>${esc(tr(x, 'title'))}</b>${tr(x, 'text') ? `<span>${esc(tr(x, 'text'))}</span>` : ''}</div>
-    ${x.target ? '<div class="go">→</div>' : ''}</div>`).join('')}</div>
+    ${plain ? go(x) : ''}</div>`;
+  }).join('')}</div>
     ${b.length > 1 ? `<div class="bdots" id="bdots">${b.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>` : '<div style="height:10px"></div>'}`;
 }
 function coverHtml() {
