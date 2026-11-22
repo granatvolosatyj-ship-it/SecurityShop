@@ -543,7 +543,7 @@ app.delete('/api/admin/brands/:id', requireAdmin, h(async (req, res) => {
 
 async function saveBanner(id, b) {
   const f = ['title_ru', 'title_en', 'text_ru', 'text_en'].map(k => String(b[k] || '').trim().slice(0, 200));
-  const target = ['catalog', 'sale', 'wheel', 'tiktok'].includes(b.target) ? b.target : '';
+  const target = ['catalog', 'sale', 'wheel', 'tiktok', 'invite'].includes(b.target) ? b.target : '';
   const aid = b.image ? await newAsset(b.image) : null;
   if (id) {
     const old = (await pool.query('select asset_id from banners where id=$1', [id])).rows[0];
@@ -558,6 +558,23 @@ async function saveBanner(id, b) {
        values($1,$2,$3,$4,$5,$6,(select coalesce(max(position),0)+1 from banners))`, [...f, target, aid]);
   }
 }
+app.post('/api/admin/banners/seed', requireAdmin, h(async (_req, res) => {
+  if ((await pool.query('select 1 from banners limit 1')).rowCount) return res.json({ ok: true });
+  const st = await getSettings();
+  const amt = Number(st.ref_amount) || 500;
+  const defs = [
+    ['Мы в TikTok', 'Follow us on TikTok', 'Обзоры и новинки', 'Reviews and new drops', 'tiktok', 'bn_tiktok'],
+    ['Колесо призов', 'Prize wheel', 'Скидка каждый день', 'A discount every day', 'wheel', 'bn_wheel'],
+    ['Позови друга', 'Invite a friend', 'Скидка ' + amt + ' ₽ вам обоим', amt + ' ₽ off for both of you', 'invite', 'bn_invite'],
+  ];
+  let pos = 1;
+  for (const d of defs) {
+    const aid = Number(st[d[5]]) || null;
+    await pool.query('insert into banners(title_ru,title_en,text_ru,text_en,target,asset_id,position) values($1,$2,$3,$4,$5,$6,$7)', [d[0], d[1], d[2], d[3], d[4], aid, pos++]);
+    if (aid) await setSetting(d[5], '');
+  }
+  res.json({ ok: true });
+}));
 app.post('/api/admin/banners', requireAdmin, h(async (req, res) => { await saveBanner(null, req.body || {}); res.json({ ok: true }); }));
 app.put('/api/admin/banners/:id', requireAdmin, h(async (req, res) => { await saveBanner(Number(req.params.id), req.body || {}); res.json({ ok: true }); }));
 app.delete('/api/admin/banners/:id', requireAdmin, h(async (req, res) => {
